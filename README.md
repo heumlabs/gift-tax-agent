@@ -26,9 +26,9 @@
 
 ### Backend
 - **Framework**: AWS Chalice (Python)
-- **Database**: PostgreSQL (with pgvector)
+- **Database**: PostgreSQL (pgvector 확장 포함)
 - **AI**: Google Gemini 1.5 Pro
-- **ORM**: SQLAlchemy
+- **ORM**: SQLAlchemy + SQLModel
 
 ### Frontend
 - **Framework**: Vue 3
