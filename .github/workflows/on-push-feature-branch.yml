@@ -1,0 +1,44 @@
+on:
+  push:
+    branches:
+      - feature/**
+
+name: On push feature branch
+
+jobs:
+  create-pull-request:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Extract commit info
+        id: split
+        run: |
+          TICKET=$(echo "${{ github.event.commits[0].message }}" | grep -oE '[A-Z][A-Z][A-Z]?-[0-9]+' | head -1)
+          TITLE=$(echo "${{ github.event.commits[0].message }}" | head -1)
+          COMMITS=$(echo '${{ toJson(github.event.commits) }}' | jq -r '.[] | "- " + (.message | split("\n")[0])')
+          echo "ticket=$TICKET" >> $GITHUB_OUTPUT
+          echo "title=$TITLE" >> $GITHUB_OUTPUT
+          echo "commits<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.ACTION_PAT }}
+          base: stag
+          branch: ${{ github.ref }}
+          commit-message: ${{ github.event.commits[0].message }}
+          committer: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          assignees: ${{ github.actor }}
+          team-reviewers: AGENT_BE
+          labels: automatic,feature,author:${{ github.actor }}
+          title: ${{ steps.split.outputs.title }}
+          body: |
+            ## Commits
+            ${{ steps.split.outputs.commits }}
