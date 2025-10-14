@@ -3,3 +3,7 @@ description:
 globs:
 alwaysApply: true
 ---
+/.venv 경로에 backend 가상환경이 있으므로, 코드 실행이 필요하면 활성화하세요.
+/backend 경로에 AWS Chalice 기반 backend가 구현되어 있습니다.
+/frontend 경로에 vite + vue3 기반 frontend가 구현되어 있습니다.
+/docs 경로에 PRD 및 PRD상세, 작업 history 등의 모든 문서를 관리합니다.
