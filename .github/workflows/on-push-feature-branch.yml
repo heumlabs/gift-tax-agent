@@ -41,11 +41,7 @@ jobs:
           ACTOR: ${{ github.actor }}
         run: |
           set -euo pipefail
-          BODY=$(cat <<'EOF'
-          ## Commits
-          ${COMMITS_MD}
-          EOF
-          )
+          BODY=$(printf '## Commits\n%s\n' "$COMMITS_MD")
           # PR 생성 (이미 존재하면 메시지 출력 후 통과)
           gh pr create \
             --base main \
