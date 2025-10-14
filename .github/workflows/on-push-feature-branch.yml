@@ -52,5 +52,5 @@ jobs:
             --label feature \
             --label "author:${ACTOR}" \
             --assignee "$ACTOR" \
-            --reviewer "AGENT_BE" \
+            --reviewer "heumlabs/AGENT_BE" \
           || echo "PR already exists for $HEAD -> main"
