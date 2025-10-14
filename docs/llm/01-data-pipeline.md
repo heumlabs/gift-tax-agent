@@ -80,6 +80,8 @@ python -m scripts.seed_tax_rules
 }
 ```
 
+**설명**: `ai-logic.md`에서 정의한 TaxCalculationEngine이 참조하는 정형 규칙 데이터(`tax_rule_config` 테이블)를 미리 적재하여, LLM이 회신 과정에서 사용할 세율·공제액이 항상 최신 상태로 유지되도록 합니다. 대화 흐름에서 필요한 변수들이 수집되면 이 테이블의 값으로 결정론적 계산을 수행하고, 그 결과가 최종 답변 합성 단계에 전달됩니다.
+
 ### 4단계: LangGraph Workflow 구현
 
 > 상세 설계는 `02-tech-stack.md` 참조

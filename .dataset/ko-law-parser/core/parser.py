@@ -42,6 +42,8 @@ def parse_law(law_file):
                     pointer_contents = 1
                 elif regex_chapter.match(line): # start chapter
                     pointer_contents = 1
+                elif regex_article.match(line):
+                    pointer_contents = 1
                 else:
                     continue
             
@@ -117,7 +119,9 @@ def parse_law(law_file):
                         else:
                             law_dict[key_part][key_chapter][key_article] = OrderedDict()
                     else:
-                        if key_section:
+                        if key_chapter is None and key_section is None and key_sub_section is None and key_sub_sub_section is None:
+                            law_dict[key_article] = OrderedDict()
+                        elif key_section:
                             if key_sub_section:
                                 if key_sub_sub_section:
                                     law_dict[key_chapter][key_section][key_sub_section][key_sub_sub_section][key_article] = OrderedDict()
@@ -125,7 +129,7 @@ def parse_law(law_file):
                                     law_dict[key_chapter][key_section][key_sub_section][key_article] = OrderedDict()
                             else:
                                 law_dict[key_chapter][key_section][key_article] = OrderedDict()
-                        else:
+                        elif key_chapter:
                             law_dict[key_chapter][key_article] = OrderedDict()
                     continue
                 else:
@@ -302,7 +306,7 @@ def delete_deleted_laws(law_dict: dict):
     
     kill_list = []
     for k, v in law_dict.items():
-        if regex_delete_section.match(k):
+        if regex_delete_section.match(k) and isinstance(v, dict) and not v:
             kill_list.append(k)
     for kill in kill_list:
         del(law_dict[kill])
