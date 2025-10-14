@@ -32,25 +32,22 @@ jobs:
             printf 'EOF\n'
           } >> "$GITHUB_OUTPUT"
 
-      - name: Create or update pull request
-        env:
-          GH_TOKEN: ${{ secrets.ACTION_PAT }}
-          HEAD: ${{ github.ref_name }}
-          TITLE: ${{ steps.split.outputs.title }}
-          COMMITS_MD: ${{ steps.split.outputs.commits }}
-          ACTOR: ${{ github.actor }}
-        run: |
-          set -euo pipefail
-          BODY=$(printf '## Commits\n%s\n' "$COMMITS_MD")
-          # PR 생성 (이미 존재하면 메시지 출력 후 통과)
-          gh pr create \
-            --base main \
-            --head "$HEAD" \
-            --title "$TITLE" \
-            --body "$BODY" \
-            --label automatic \
-            --label feature \
-            --label "author:${ACTOR}" \
-            --assignee "$ACTOR" \
-            --reviewer "heumlabs/AGENT_BE" \
-          || echo "PR already exists for $HEAD -> main"
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.ACTION_PAT }}
+          base: stag
+          branch: ${{ github.ref }}
+          commit-message: ${{ github.event.commits[0].message }}
+          committer: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          assignees: ${{ github.actor }}
+          team-reviewers: AGENT_BE
+          labels: automatic,feature,author:${{ github.actor }}
+          title: ${{ steps.split.outputs.title }}
+          body: |
+            ## Related Issue
+            - [${{ steps.split.outputs.ticket }}](https://heumlabs.atlassian.net/browse/${{ steps.split.outputs.ticket }})
+
+            ## Commits
+            ${{ steps.split.outputs.commits }}
