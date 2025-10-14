@@ -3,6 +3,7 @@
 
 # Chalice
 .chalice/deployments/
+.chalice/deployed/
 .chalice/venv/
 .chalice/.chalice.db
 
