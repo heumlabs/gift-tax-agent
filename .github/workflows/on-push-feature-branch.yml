@@ -1,0 +1,56 @@
+on:
+  push:
+    branches:
+      - feature/**
+
+name: On push feature branch
+
+jobs:
+  create-pull-request:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract commit info
+        id: split
+        env:
+          HEAD_MESSAGE: ${{ github.event.head_commit.message }}
+          COMMITS_JSON: ${{ toJson(github.event.commits) }}
+        run: |
+          set -euo pipefail
+          TICKET="$(printf '%s' "$HEAD_MESSAGE" | grep -oE '[A-Z][A-Z0-9]+-[0-9]+' | head -1 || true)"
+          TITLE="$(printf '%s' "$HEAD_MESSAGE" | head -1)"
+          COMMITS="$(printf '%s' "$COMMITS_JSON" | jq -r '.[] | "- " + (.message | split("\n")[0])')"
+          {
+            printf 'ticket=%s\n' "$TICKET"
+            printf 'title=%s\n' "$TITLE"
+            printf 'commits<<EOF\n'
+            printf '%s\n' "$COMMITS"
+            printf 'EOF\n'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create or update pull request
+        env:
+          GH_TOKEN: ${{ secrets.ACTION_PAT }}
+          HEAD: ${{ github.ref_name }}
+          TITLE: ${{ steps.split.outputs.title }}
+          COMMITS_MD: ${{ steps.split.outputs.commits }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          BODY=$(printf '## Commits\n%s\n' "$COMMITS_MD")
+          # PR 생성 (이미 존재하면 메시지 출력 후 통과)
+          gh pr create \
+            --base main \
+            --head "$HEAD" \
+            --title "$TITLE" \
+            --body "$BODY" \
+            --label automatic \
+            --label feature \
+            --label "author:${ACTOR}" \
+            --assignee "$ACTOR" \
+            --team-reviewer "AGENT_BE" \
+          || echo "PR already exists for $HEAD -> main"

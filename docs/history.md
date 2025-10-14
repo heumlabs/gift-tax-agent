@@ -1,5 +1,9 @@
 # 작업 이력
 
+## 2025-10-14 - GitHub Actions 워크플로우 추가
+
+- `.github/workflows/on-push-feature-branch.yml` 생성 (feature 브랜치 push 시 자동 PR 생성)
+
 ## 2025-10-13 - 프로젝트 초기 설정 및 로컬 개발 환경 구축
 
 - `.gitignore`에 `.history/` 제외 항목 추가
