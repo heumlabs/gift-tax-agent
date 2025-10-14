@@ -76,7 +76,7 @@
 ### 8) 기술 스택 및 아키텍처(개요)
 - **프런트엔드**: Vue3 + Vite + TypeScript + Tailwind CSS 3 + GSAP
 - **백엔드**: AWS Chalice(Python) + PostgreSQL. 벡터 검색은 pgvector 또는 별도 벡터 스토어
-- **LLM**: Google Gemini 1.5 Pro(+ 검색도구). 필요 시 OpenAI 대체 경로 준비
+- **LLM**: Google Gemini 2.5 Pro(+ 검색도구). 필요 시 OpenAI 대체 경로 준비
 - **문서/RAG**: 법제처·국세청 공개 문서 파이프라인 → 파서 → 청크 → 임베딩 → 인덱스
 - **로그/모니터링**: CloudWatch 로그, 메트릭(응답시간·오류율·토큰 사용량), 알람
 - **CD/배포**: GitHub Actions → Chalice 배포, 프런트는 CDN 배포
