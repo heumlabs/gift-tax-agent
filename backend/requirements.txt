@@ -1,5 +1,5 @@
 # AWS Chalice Framework
-chalice==1.31.2
+chalice
 
 # Database
 psycopg2-binary==2.9.9
@@ -13,9 +13,6 @@ python-dotenv==1.0.1
 
 # HTTP Requests
 requests==2.32.4
-
-# CORS
-chalice-cors==0.1.0
 
 # Data Validation
 pydantic==2.9.2
