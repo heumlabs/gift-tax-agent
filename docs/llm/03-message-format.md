@@ -40,46 +40,24 @@ CREATE TABLE messages (
 
 ## 3. Assistant Message Metadata 상세
 
-### 3.1. 전체 구조 (TypeScript 정의)
+### 3.1. 전체 구조
 
-```typescript
-interface AssistantMetadata {
-  // 핵심: 법령 인용
-  citations: Citation[];
+| 필드 | 설명 | 필수 | 비고 |
+|------|------|------|------|
+| `citations[]` | 법령/지식 출처 정보 | ✅ | 3.2 참조 |
+| `calculation` | 세금 계산 결과 구조 | 옵션 | 3.3 참조 |
+| `alternatives[]` | 대안 시나리오 리스트 | 옵션 | 3.4 참조 |
+| `tool_calls[]` | 사용된 도구 로그 | 옵션 | 3.5 참조 |
+| `assumptions[]` | 적용된 전제 목록 | 옵션 | Clarifying 결과 |
+| `exceptions[]` | 예외/주의 사항 | 옵션 | 답변 본문에 재노출 |
+| `recommendations[]` | 후속 권고 사항 | 옵션 | 사용자 액션 안내 |
+| `missing_parameters[]` | 미수집 필수 변수 정보 | 옵션 | `{ name, reason }` 구조 |
+| `tokens` | 입력/출력 토큰 수 | 옵션 | 분석용 |
+| `latency_ms` | 모델 응답 시간 (ms) | 옵션 | 모니터링용 |
+| `model` | 사용한 LLM 식별자 | 옵션 | 예: `gemini-2.5-pro` |
+| `feedback` | 사용자 피드백 정보 | 옵션 | 3.6 참조 |
 
-  // 세금 계산 결과
-  calculation?: TaxCalculation;
-
-  // 대안 시나리오
-  alternatives?: Alternative[];
-
-  // Tool 호출 이력 (내부용)
-  tool_calls?: ToolCall[];
-
-  // Clarifying 결과
-  assumptions?: string[];
-  exceptions?: string[];
-  recommendations?: string[];
-  missing_parameters?: MissingParameter[];
-
-  // 토큰 사용량 (분석용)
-  tokens?: TokenUsage;
-
-  // 응답 생성 시간 (모니터링용)
-  latency_ms?: number;
-
-  // 사용 모델
-  model?: string;
-
-  // 사용자 피드백 (나중에 업데이트)
-  feedback?: Feedback | null;
-}
-
-interface MissingParameter {
-  name: string;
-  reason: 'not_provided' | 'ambiguous' | 'user_unknown';
-}
-```
+`missing_parameters.reason` 값은 `not_provided`, `ambiguous`, `user_unknown` 중 하나를 사용합니다.
 
 ---
 
@@ -87,29 +65,16 @@ interface MissingParameter {
 
 **목적**: 답변의 법적 근거를 명확히 제시
 
-```typescript
-interface Citation {
-  // DB 참조 (내부용)
-  source_id: number;              // law_sources.id 또는 knowledge_sources.id
-  source_type: 'law' | 'knowledge';
-
-  // 법령 정보
-  law_name: string;               // 예: "상속세및증여세법"
-  full_reference: string;         // 예: "상속세및증여세법 제1장 총칙 제53조 1항"
-  article?: string;               // 예: "제53조"
-  paragraph?: string;             // 예: "1항"
-  item?: string;                  // 예: "2호"
-
-  // 인용 내용
-  content_snippet: string;        // 해당 조항 원문 일부 (100~200자)
-
-  // 원문 링크 (법제처)
-  source_url: string;             // 예: "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=123456#0000"
-
-  // 관련성 점수 (내부용)
-  relevance_score?: number;       // 0~1, RAG 검색 점수
-}
-```
+| 필드 | 설명 | 필수 | 비고 |
+|------|------|------|------|
+| `source_id` | `law_sources` 또는 `knowledge_sources`의 ID | ✅ | 내부 참조용 |
+| `source_type` | `law` / `knowledge` | ✅ | 인용 구분 |
+| `law_name` | 법령 또는 자료 이름 | ✅ | 예: 상속세및증여세법 |
+| `full_reference` | 조·항 등 전체 인용 경로 | ✅ | 예: “제53조 1항” |
+| `article`, `paragraph`, `item` | 세부 위치 | 옵션 | 존재할 경우만 기재 |
+| `content_snippet` | 인용 텍스트 요약(100~200자) | ✅ | 하이라이트용 |
+| `source_url` | 원문 링크 | ✅ | 법제처/국세청 |
+| `relevance_score` | 검색 점수 (0~1) | 옵션 | RAG 점검용 |
 
 **JSON 예시**:
 ```json
@@ -132,41 +97,14 @@ interface Citation {
 
 **목적**: 계산 과정을 투명하게 제시
 
-```typescript
-interface TaxCalculation {
-  // 세금 유형
-  tax_type: 'gift' | 'inheritance';
-
-  // 계산 전제 조건
-  assumptions: string[];          // 예: ["거주자 간 증여", "과거 10년 증여 없음"]
-
-  // 입력 값
-  input: {
-    amount: number;               // 증여/상속 재산 가액
-    relationship: string;         // 관계 (spouse, lineal_ascendant 등)
-    is_resident: boolean;         // 거주자 여부
-    past_gifts?: number;          // 과거 10년 증여액
-    [key: string]: any;           // 기타 입력값
-  };
-
-  // 계산 단계
-  steps: CalculationStep[];
-
-  // 최종 세액
-  final_tax: number;
-
-  // 주의사항 및 경고
-  warnings: string[];             // 예: ["증여일로부터 3개월 이내 신고 필요"]
-}
-
-interface CalculationStep {
-  step: number;                   // 단계 번호
-  description: string;            // 단계 설명
-  value: number;                  // 계산 값
-  formula?: string;               // 계산 공식 (선택)
-  reference?: string;             // 관련 법령 (선택)
-}
-```
+| 필드 | 설명 | 필수 | 비고 |
+|------|------|------|------|
+| `tax_type` | `gift` / `inheritance` | ✅ | 계산 종류 |
+| `assumptions[]` | 계산 전제 목록 | ✅ | Clarifying 결과와 연계 |
+| `input` | 입력 변수 집합 | ✅ | `amount`, `relationship`, `is_resident` 등 |
+| `steps[]` | 단계별 계산 로그 | ✅ | 각 항목은 `step`, `description`, `value`, `formula`, `reference` 포함 |
+| `final_tax` | 최종 산출 세액 | ✅ | KRW |
+| `warnings[]` | 주의/가산세 안내 | 옵션 | 문자열 배열 |
 
 **JSON 예시**:
 ```json
