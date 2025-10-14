@@ -5,13 +5,13 @@ LLM 데이터 파이프라인 자료와 법령 파서 리소스를 추가하고,
 
 ## 변경 사항
 - `.dataset/ko-law-parser/`에 파서 모듈과 법령 원문/JSON 데이터 일괄 추가
-- `docs/llm/01-data-pipeline.md`, `docs/llm/02-database-schema.md`, `docs/llm/03-message-format.md` 및 `docs/llm/db-diagram.png` 신규 작성
+- `docs/llm/01-data-pipeline.md`, `docs/llm/02-database-detail.md`, `docs/llm/03-message-format.md` 및 `docs/llm/db-diagram.png` 신규 작성
 - `docs/prd_detail/backend-architecture.md`의 기존 내용을 보존하도록 변경사항 원복
 - `docs/prd_detail/database-model.md`에 LLM 스키마(법령/지식 벡터, 메타데이터 인덱스) 통합
 - `docs/llm/01-data-pipeline.md`에 세금 규정 초기화 단계와 `docs/prd_detail/ai-logic.md` 간 연계 설명 추가
 - `docs/prd_detail/ai-logic.md`에 증여·상속 법령 우선 수집 계획 반영
 - `상속세 및 증여세법` 3종 텍스트를 파싱해 JSON 생성, 파서가 장/절 없는 규칙형 법령도 처리하도록 로직 보완
-- `docs/llm/02-database-schema.md`를 LLM 전용 참고 문서로 축소 정리하고 PRD 스키마 문서와 역할 분리
+- `docs/llm/02-database-detail.md`를 LLM 전용 참고 문서로 축소 정리하고 PRD 스키마 문서와 역할 분리
 - README·SETUP 문서에 SQLModel, pgvector 등 최신 백엔드 패키지 구성을 반영
 - 최신 `origin/main`을 기준으로 브랜치 리베이스 수행 후 충돌 해결
 

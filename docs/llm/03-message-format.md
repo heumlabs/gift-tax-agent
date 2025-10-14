@@ -2,7 +2,7 @@
 
 **문서 버전**: v1.0
 **작성일**: 2025-10-14
-**연관 문서**: `docs/prd_detail/api-spec.md`, `02-database-schema.md`
+**연관 문서**: `docs/prd_detail/api-spec.md`, `02-database-detail.md`
 
 ## 1. 개요
 
