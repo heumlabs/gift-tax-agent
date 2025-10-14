@@ -10,35 +10,51 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Extract commit info
         id: split
+        env:
+          HEAD_MESSAGE: ${{ github.event.head_commit.message }}
+          COMMITS_JSON: ${{ toJson(github.event.commits) }}
         run: |
-          TICKET=$(echo "${{ github.event.commits[0].message }}" | grep -oE '[A-Z][A-Z][A-Z]?-[0-9]+' | head -1)
-          TITLE=$(echo "${{ github.event.commits[0].message }}" | head -1)
-          COMMITS=$(echo '${{ toJson(github.event.commits) }}' | jq -r '.[] | "- " + (.message | split("\n")[0])')
-          echo "ticket=$TICKET" >> $GITHUB_OUTPUT
-          echo "title=$TITLE" >> $GITHUB_OUTPUT
-          echo "commits<<EOF" >> $GITHUB_OUTPUT
-          echo "$COMMITS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          set -euo pipefail
+          TICKET="$(printf '%s' "$HEAD_MESSAGE" | grep -oE '[A-Z][A-Z0-9]+-[0-9]+' | head -1 || true)"
+          TITLE="$(printf '%s' "$HEAD_MESSAGE" | head -1)"
+          COMMITS="$(printf '%s' "$COMMITS_JSON" | jq -r '.[] | "- " + (.message | split("\n")[0])')"
+          {
+            printf 'ticket=%s\n' "$TICKET"
+            printf 'title=%s\n' "$TITLE"
+            printf 'commits<<EOF\n'
+            printf '%s\n' "$COMMITS"
+            printf 'EOF\n'
+          } >> "$GITHUB_OUTPUT"
 
-      - name: Create pull request
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.ACTION_PAT }}
-          base: main
-          branch: ${{ github.ref }}
-          commit-message: ${{ github.event.commits[0].message }}
-          committer: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          assignees: ${{ github.actor }}
-          team-reviewers: AGENT_BE
-          labels: automatic,feature,author:${{ github.actor }}
-          title: ${{ steps.split.outputs.title }}
-          body: |
-            ## Commits
-            ${{ steps.split.outputs.commits }}
+      - name: Create or update pull request
+        env:
+          GH_TOKEN: ${{ secrets.ACTION_PAT }}
+          HEAD: ${{ github.ref_name }}
+          TITLE: ${{ steps.split.outputs.title }}
+          COMMITS_MD: ${{ steps.split.outputs.commits }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          BODY=$(cat <<'EOF'
+          ## Commits
+          ${COMMITS_MD}
+          EOF
+          )
+          # PR 생성 (이미 존재하면 메시지 출력 후 통과)
+          gh pr create \
+            --base main \
+            --head "$HEAD" \
+            --title "$TITLE" \
+            --body "$BODY" \
+            --label automatic \
+            --label feature \
+            --label "author:${ACTOR}" \
+            --assignee "$ACTOR" \
+            --team-reviewer "AGENT_BE" \
+          || echo "PR already exists for $HEAD -> main"
