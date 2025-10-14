@@ -73,7 +73,7 @@ cp .env.example .env
 
 ```env
 # 데이터베이스 설정 (로컬 개발 시)
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/syuking_db
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/shuking
 
 # Google Gemini API 키 (필수)
 GEMINI_API_KEY=your_actual_gemini_api_key_here
@@ -97,12 +97,12 @@ CORS_ALLOW_ORIGIN=http://localhost:5173
 
 ```sql
 -- PostgreSQL에 접속하여 실행
-CREATE DATABASE syuking_db;
-CREATE USER syuking_user WITH PASSWORD 'your_password';
-GRANT ALL PRIVILEGES ON DATABASE syuking_db TO syuking_user;
+CREATE DATABASE shuking;
+CREATE USER shuking WITH PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE shuking TO shuking;
 
 -- pgvector 확장 설치 (벡터 검색용)
-\c syuking_db
+\c shuking
 CREATE EXTENSION vector;
 ```
 
