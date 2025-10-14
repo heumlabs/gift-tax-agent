@@ -1,17 +1,19 @@
 # 작업 이력: 202510141456_rebase_origin_main
 
 ## 작업 요약
-LLM 데이터 파이프라인 자료와 법령 파서 리소스를 추가하고, 관련 문서를 최신화한 뒤 브랜치를 `origin/main` 기준으로 리베이스했습니다.
+LLM 데이터 파이프라인 자료와 법령 파서 리소스를 추가하고, 브랜치를 `origin/main` 기준으로 리베이스한 뒤 백엔드 아키텍처 문서 변경은 원복했습니다.
 
 ## 변경 사항
 - `.dataset/ko-law-parser/`에 파서 모듈과 법령 원문/JSON 데이터 일괄 추가
 - `docs/llm/01-data-pipeline.md`~`04-message-format.md` 및 `docs/llm/db-diagram.png` 신규 작성
-- `docs/prd_detail/backend-architecture.md`의 데이터베이스 관리 단락을 pgvector/SQLAlchemy Core 기반으로 업데이트
+- `docs/prd_detail/backend-architecture.md`의 기존 내용을 보존하도록 변경사항 원복
+- `docs/prd_detail/database-model.md`에 LLM 스키마(법령/지식 벡터, 메타데이터 인덱스) 통합
 - 최신 `origin/main`을 기준으로 브랜치 리베이스 수행 후 충돌 해결
 
 ## 영향 범위
 - LLM 기술 스택 및 데이터 파이프라인 문서화 범위 확장
-- 백엔드 아키텍처 문서가 최신 데이터베이스 운영 방침을 반영
+- 백엔드 아키텍처 문서는 기존 운영 방침을 유지
+- PRD 데이터베이스 모델 문서가 LLM 세부 스키마를 반영
 - 브랜치 히스토리가 최신 메인 커밋을 기반으로 재정렬
 
 ## 테스트
