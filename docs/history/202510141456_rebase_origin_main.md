@@ -5,12 +5,13 @@ LLM 데이터 파이프라인 자료와 법령 파서 리소스를 추가하고,
 
 ## 변경 사항
 - `.dataset/ko-law-parser/`에 파서 모듈과 법령 원문/JSON 데이터 일괄 추가
-- `docs/llm/01-data-pipeline.md`~`04-message-format.md` 및 `docs/llm/db-diagram.png` 신규 작성
+- `docs/llm/01-data-pipeline.md`, `docs/llm/02-database-schema.md`, `docs/llm/03-message-format.md` 및 `docs/llm/db-diagram.png` 신규 작성
 - `docs/prd_detail/backend-architecture.md`의 기존 내용을 보존하도록 변경사항 원복
 - `docs/prd_detail/database-model.md`에 LLM 스키마(법령/지식 벡터, 메타데이터 인덱스) 통합
 - `docs/llm/01-data-pipeline.md`에 세금 규정 초기화 단계와 `docs/prd_detail/ai-logic.md` 간 연계 설명 추가
 - `docs/prd_detail/ai-logic.md`에 증여·상속 법령 우선 수집 계획 반영
 - `상속세 및 증여세법` 3종 텍스트를 파싱해 JSON 생성, 파서가 장/절 없는 규칙형 법령도 처리하도록 로직 보완
+- `docs/llm/02-database-schema.md`를 LLM 전용 참고 문서로 축소 정리하고 PRD 스키마 문서와 역할 분리
 - 최신 `origin/main`을 기준으로 브랜치 리베이스 수행 후 충돌 해결
 
 ## 영향 범위
@@ -20,6 +21,7 @@ LLM 데이터 파이프라인 자료와 법령 파서 리소스를 추가하고,
 - 세금 계산 로직 문서 간 참조가 강화되어 개발 흐름 추적이 용이
 - 증여·상속 상담을 위한 RAG 말뭉치 수집 범위가 명시되어 데이터 준비 작업이 명확
 - 상속세/증여세 주요 법령이 데이터셋에 추가되어 향후 파이프라인 테스트가 가능
+- LLM 전용 문서와 PRD 스키마 문서를 분리함으로써 중복 정의와 관리 비용 감소
 - 브랜치 히스토리가 최신 메인 커밋을 기반으로 재정렬
 
 ## 테스트

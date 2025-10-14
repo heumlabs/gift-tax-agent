@@ -2,7 +2,7 @@
 
 **문서 버전**: v1.0
 **작성일**: 2025-10-14
-**연관 문서**: `docs/prd_detail/api-spec.md`, `03-database-schema.md`
+**연관 문서**: `docs/prd_detail/api-spec.md`, `02-database-schema.md`
 
 ## 1. 개요
 
@@ -856,4 +856,3 @@ metadata = {
 2. ⏭️ 기술 스택 및 구현 방향 문서 작성
 3. ⏭️ LangGraph Workflow 설계 문서
 4. ⏭️ API 엔드포인트 상세 명세
-

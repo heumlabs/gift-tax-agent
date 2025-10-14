@@ -2,14 +2,14 @@
 
 **문서 버전:** v2.0
 **작성일:** 2025-10-14
-**연관 문서**: `02-tech-stack.md`, `03-database-schema.md`
+**연관 문서**: `02-database-schema.md`, `03-message-format.md`
 
 ## 1. 개요
 
 슈킹 AI 상담 서비스의 **데이터 파이프라인 및 초기 데이터 로딩**에 집중한 구현 계획입니다.
 
 - **목표**: 법령 텍스트를 처리하여 pgvector에 저장하고 RAG 시스템 구축
-- **범위**: 데이터 준비 및 벡터 DB 구축 (LangGraph 워크플로우는 `02-tech-stack.md` 참조)
+- **범위**: 데이터 준비 및 벡터 DB 구축 (상세 상담 플로우는 `docs/prd_detail/ai-logic.md` 참조)
 
 ## 2. 기술 스택 요약
 
@@ -22,13 +22,13 @@
 
 ### 1단계: DB 스키마 설정
 
-> 상세 스키마는 `03-database-schema.md` 참조
+> 상세 스키마는 `02-database-schema.md` 참조
 
 ```bash
 # pgvector 확장 활성화
 psql -d gift_tax_agent -c "CREATE EXTENSION IF NOT EXISTS vector;"
 
-# 테이블 생성 (03-database-schema.md의 SQL 스크립트 실행)
+# 테이블 생성 (02-database-schema.md의 SQL 스크립트 실행)
 psql -d gift_tax_agent -f backend/database/schema.sql
 ```
 
@@ -84,7 +84,7 @@ python -m scripts.seed_tax_rules
 
 ### 4단계: LangGraph Workflow 구현
 
-> 상세 설계는 `02-tech-stack.md` 참조
+> 상세 설계는 `docs/prd_detail/ai-logic.md` 참조
 
 **핵심 구현 사항**:
 - `chalicelib/graph/workflow.py`: LangGraph Workflow 정의
@@ -110,13 +110,13 @@ results = db.query("""
 
 ### Week 1: 데이터 준비
 - [ ] PostgreSQL + pgvector 환경 구축
-- [ ] DB 스키마 생성 (`03-database-schema.md` 스크립트 실행)
+- [ ] DB 스키마 생성 (`02-database-schema.md` 스크립트 실행)
 - [ ] 법령 데이터 파이프라인 작성 (`build_law_vector_db.py`)
 - [ ] 법령 데이터 임베딩 및 적재 (5,000~10,000 chunks)
 - [ ] 벡터 검색 품질 테스트
 
 ### Week 2: LangGraph + RAG
-- [ ] LangGraph Workflow 구현 (`02-tech-stack.md` 참조)
+- [ ] LangGraph Workflow 구현 (`docs/prd_detail/ai-logic.md` 참조)
 - [ ] SearchLawTool 구현 (pgvector 연동)
 - [ ] TaxCalculator 구현 (순수 Python)
 - [ ] 세금 규정 초기 데이터 적재 (`seed_tax_rules.py`)
