@@ -23,8 +23,8 @@
   - `law_name, full_reference` 복합 인덱스 (법령/조문 조회용)
 
 ### 2.2. `knowledge_sources`
-- 목적: FAQ, Q&A, 뉴스, **웹 검색 요약** 등 비법령 지식의 벡터 저장소  
-- 주요 컬럼: `chunk_hash`, `source_type`(예: `qna`, `news`, `web_search`), `title`, `content`, `embedding`, `metadata`, `source_url`, `created_at`
+- 목적: FAQ, Q&A, 뉴스 등 비법령 지식의 벡터 저장소  
+- 주요 컬럼: `chunk_hash`, `source_type`, `title`, `content`, `embedding`, `metadata`, `source_url`, `created_at`
 - 필수 인덱스
   - `embedding`에 `USING hnsw`
   - `source_type` (필터링)
