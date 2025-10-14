@@ -13,7 +13,6 @@
 
 ## 2. 기술 스택 요약
 
-- **데이터베이스**: PostgreSQL 14+ + pgvector 0.3.6+
 - **임베딩**: Google Gemini text-embedding-004 (768차원)
 - **LLM**: Google Gemini 2.5 Pro
 - **검색 방식**: Vector Search Only (HNSW 인덱스)
