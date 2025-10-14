@@ -26,9 +26,9 @@
 
 ### Backend
 - **Framework**: AWS Chalice (Python)
-- **Database**: PostgreSQL (with pgvector)
+- **Database**: PostgreSQL (pgvector 확장 포함)
 - **AI**: Google Gemini 1.5 Pro
-- **ORM**: SQLAlchemy
+- **ORM**: SQLAlchemy + SQLModel
 
 ### Frontend
 - **Framework**: Vue 3
@@ -232,4 +232,3 @@ VITE_APP_ENV=development
 ## 👥 기여
 
 현재 개인 프로젝트로 진행 중입니다.
-
