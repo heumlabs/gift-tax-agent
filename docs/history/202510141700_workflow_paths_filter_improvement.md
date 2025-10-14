@@ -10,6 +10,7 @@ GitHub Actions 배포 워크플로우의 변경사항 감지 로직을 `dorny/pa
 - `deploy-frontend` job이 `changes` job의 `frontend` 출력을 확인하도록 수정
 - job 간 의존성 설정: `deploy-backend`와 `deploy-frontend`가 `changes` job을 필요로 함
 - CloudFront invalidation을 `chetan/invalidate-cloudfront-action@v2` 대신 AWS CLI로 직접 실행하도록 변경
+- 워크플로우 파일(`.github/workflows/deploy.yml`) 변경 시 backend와 frontend 모두 재배포하도록 설정
 
 ## 변경 전 문제점
 - `github.event.head_commit.modified/added`는 마지막 커밋만 확인
