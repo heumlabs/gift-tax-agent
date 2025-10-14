@@ -1,4 +1,4 @@
-# 슈킹 (Syuking) - 증여세/상속세 AI 상담 서비스
+# 슈킹 (Shuking) - 증여세/상속세 AI 상담 서비스
 
 증여세와 상속세에 대한 AI 기반 상담 서비스입니다.
 
@@ -173,9 +173,9 @@ gift-tax-agent/
 PostgreSQL 데이터베이스 생성:
 
 ```sql
-CREATE DATABASE syuking_db;
-CREATE USER syuking_user WITH PASSWORD 'your_password';
-GRANT ALL PRIVILEGES ON DATABASE syuking_db TO syuking_user;
+CREATE DATABASE shuking;
+CREATE USER shuking WITH PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE shuking TO shuking;
 
 -- pgvector 확장 설치 (벡터 검색용)
 CREATE EXTENSION vector;
@@ -186,7 +186,7 @@ CREATE EXTENSION vector;
 ### Backend (.env)
 
 ```env
-DATABASE_URL=postgresql://username:password@localhost:5432/syuking_db
+DATABASE_URL=postgresql://username:password@localhost:5432/shuking
 GEMINI_API_KEY=your_gemini_api_key_here
 ENVIRONMENT=dev
 CORS_ALLOW_ORIGIN=http://localhost:5173
@@ -224,11 +224,3 @@ VITE_APP_ENV=development
 - [Vue 3 Documentation](https://vuejs.org/)
 - [Vite Documentation](https://vitejs.dev/)
 - [PRD (Product Requirements Document)](./docs/PRD.md)
-
-## 📄 라이선스
-
-이 프로젝트는 개인 프로젝트입니다.
-
-## 👥 기여
-
-현재 개인 프로젝트로 진행 중입니다.

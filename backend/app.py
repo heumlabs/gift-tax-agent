@@ -13,12 +13,12 @@ cors_config = CORSConfig(
     allow_credentials=True,
 )
 
-app = Chalice(app_name="syuking")
+app = Chalice(app_name="shuking")
 
 
 @app.route("/")
 def index():
-    return {"message": "Syuking API Server", "version": "0.1.0"}
+    return {"message": "Shuking API Server", "version": "0.1.0"}
 
 
 @app.route("/health", methods=["GET"], cors=cors_config)
