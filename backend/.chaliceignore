@@ -1,0 +1,51 @@
+# 테스트 파일
+tests/
+test_*.py
+*_test.py
+
+# 문서
+*.md
+*.txt
+*.rst
+
+# 캐시
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# 개발 도구
+.chalice/deployments/
+.chalice/venv/
+
+# 불필요한 패키지 파일
+*.dist-info/
+*.egg-info/
+*.so
+*.dylib
+
+# 문서 및 예제
+**/tests/
+**/test/
+**/examples/
+**/docs/
+**/doc/
+**/*.md
+**/*.rst
+**/*.txt
+
+# 타입 스텁
+**/*.pyi
+**/py.typed
+
