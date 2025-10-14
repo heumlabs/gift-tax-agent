@@ -12,7 +12,7 @@ google-generativeai==0.8.3
 python-dotenv==1.0.1
 
 # HTTP Requests
-requests==2.32.3
+requests==2.32.4
 
 # CORS
 chalice-cors==0.1.0
