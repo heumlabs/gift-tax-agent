@@ -30,7 +30,7 @@ jobs:
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.ACTION_PAT }}
-          base: stag
+          base: main
           branch: ${{ github.ref }}
           commit-message: ${{ github.event.commits[0].message }}
           committer: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
