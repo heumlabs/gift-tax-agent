@@ -2,7 +2,7 @@
 
 **문서 버전:** v2.0
 **작성일:** 2025-10-14
-**연관 문서**: `02-database-detail.md`, `03-message-format.md`
+**연관 문서**: `02-database-detail.md`, `03-message-format.md`, `04-clarifying-strategy.md`
 
 ## 1. 개요
 
@@ -90,6 +90,7 @@ python -m scripts.seed_tax_rules
 - `chalicelib/graph/workflow.py`: LangGraph Workflow 정의
 - `chalicelib/tools/search_law.py`: 벡터 검색 Tool
 - `chalicelib/services/tax_calculator.py`: 결정론적 세금 계산
+- Clarifying 질문·변수 수집 로직은 `04-clarifying-strategy.md`의 체크리스트와 템플릿을 따른다.
 
 **벡터 검색 로직**:
 ```python
@@ -118,6 +119,7 @@ results = db.query("""
 ### Week 2: LangGraph + RAG
 - [ ] LangGraph Workflow 구현 (`docs/prd_detail/ai-logic.md` 참조)
 - [ ] SearchLawTool 구현 (pgvector 연동)
+- [ ] WebSearchTool 래핑 (Gemini web-search) 및 사용 조건 정의
 - [ ] TaxCalculator 구현 (순수 Python)
 - [ ] 세금 규정 초기 데이터 적재 (`seed_tax_rules.py`)
 - [ ] Workflow 통합 테스트

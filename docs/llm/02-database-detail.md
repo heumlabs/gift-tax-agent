@@ -29,6 +29,7 @@
   - `embedding`에 `USING hnsw`
   - `source_type` (필터링)
   - `metadata`에 GIN (태그 검색)
+- `source_type` 권장 값: `faq`, `case_study`, `news`, `guideline`
 
 ### 2.3. `tax_rule_config`
 - 목적: 세율/공제 등 결정론적 계산에 쓰이는 규칙 데이터의 버전 관리  

@@ -56,6 +56,12 @@ interface AssistantMetadata {
   // Tool 호출 이력 (내부용)
   tool_calls?: ToolCall[];
 
+  // Clarifying 결과
+  assumptions?: string[];
+  exceptions?: string[];
+  recommendations?: string[];
+  missing_parameters?: MissingParameter[];
+
   // 토큰 사용량 (분석용)
   tokens?: TokenUsage;
 
@@ -67,6 +73,11 @@ interface AssistantMetadata {
 
   // 사용자 피드백 (나중에 업데이트)
   feedback?: Feedback | null;
+}
+
+interface MissingParameter {
+  name: string;
+  reason: 'not_provided' | 'ambiguous' | 'user_unknown';
 }
 ```
 
@@ -355,6 +366,14 @@ interface Attachment {
 
 ---
 
+## 5. Clarifying Metadata 연계
+
+- Clarifying 질문/응답 이력은 `missing_parameters`, `clarifying_history`(선택) 필드에 기록하고 `04-clarifying-strategy.md`의 규칙을 따른다.
+- `assumptions`, `exceptions`, `recommendations` 배열은 계산 결과와 함께 UI에 노출되어야 하며, PRD의 “전제/예외/권고” 요구사항을 충족한다.
+- 누락 변수 안내가 포함된 경우, 답변 본문에 동일 내용을 명시하여 사용자가 빠르게 재답변할 수 있도록 한다.
+
+---
+
 ## 5. API 응답 형식
 
 ### 5.1. POST `/api/sessions/{id}/messages`
@@ -441,6 +460,18 @@ interface Attachment {
         "기한 후 신고 시 가산세 20% 부과"
       ]
     },
+
+    "assumptions": [
+      "국내 거주자 기준 계산",
+      "배우자 증여 공제 6억원 적용"
+    ],
+    "exceptions": [
+      "해외 재산 증여 시 별도 신고 절차가 필요합니다."
+    ],
+    "recommendations": [
+      "증여 사실을 입증할 수 있는 서류를 5년간 보관하세요."
+    ],
+    "missingParameters": [],
 
     "alternatives": [
       {
