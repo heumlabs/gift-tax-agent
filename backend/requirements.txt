@@ -1,0 +1,28 @@
+# AWS Chalice Framework
+chalice==1.31.2
+
+# Database
+psycopg2-binary==2.9.9
+SQLAlchemy==2.0.32
+
+# Google Gemini AI
+google-generativeai==0.8.3
+
+# Environment Variables
+python-dotenv==1.0.1
+
+# HTTP Requests
+requests==2.32.3
+
+# CORS
+chalice-cors==0.1.0
+
+# Data Validation
+pydantic==2.9.2
+
+# Vector Embeddings
+pgvector==0.3.6
+
+# Utilities
+python-dateutil==2.9.0.post0
+

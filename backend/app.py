@@ -1,11 +1,36 @@
-from chalice import Chalice
+from chalice import Chalice, CORSConfig
+import os
+from dotenv import load_dotenv
 
-app = Chalice(app_name='syuking')
+# Load environment variables
+load_dotenv()
+
+# CORS configuration
+cors_config = CORSConfig(
+    allow_origin=os.getenv("CORS_ALLOW_ORIGIN", "http://localhost:5173"),
+    allow_headers=["Content-Type", "X-Client-Id", "X-Session-Id"],
+    max_age=600,
+    allow_credentials=True,
+)
+
+app = Chalice(app_name="syuking")
 
 
-@app.route('/')
+@app.route("/")
 def index():
-    return {'hello': 'world'}
+    return {"message": "Syuking API Server", "version": "0.1.0"}
+
+
+@app.route("/health", methods=["GET"], cors=cors_config)
+def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy", "environment": os.getenv("ENVIRONMENT", "dev")}
+
+
+@app.route("/api/test", methods=["GET"], cors=cors_config)
+def test():
+    """Test endpoint with CORS enabled"""
+    return {"message": "CORS is working!", "api_version": "0.1.0"}
 
 
 # The view function above will return {"hello": "world"}
