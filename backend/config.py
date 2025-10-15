@@ -13,7 +13,6 @@ class Settings(BaseSettings):
 
     # 환경 설정
     ENVIRONMENT: str = "local"
-    APP_STAGE: str = "local"  # 하위 호환성
     CORS_ALLOW_ORIGIN: str = "http://localhost:5173"
 
     # API 키
