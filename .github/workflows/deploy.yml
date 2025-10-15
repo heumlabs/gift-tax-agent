@@ -63,12 +63,7 @@ jobs:
           ./.scripts/fetch-secrets.sh
 
       - name: Deploy to production
-        env:
-          AWS_LAMBDA_LAYER_S3_BUCKET: shuking-lambda-deployment
         run: |
-          # S3 버킷 생성 (없는 경우)
-          aws s3 mb s3://shuking-lambda-deployment --region ap-northeast-2 2>/dev/null || true
-          # Chalice 배포 (S3를 통해)
           chalice deploy --stage prod --connection-timeout 300
 
   deploy-frontend:

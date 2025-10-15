@@ -137,6 +137,20 @@ Secrets를 가져오려면 다음 IAM 권한이 필요합니다:
 }
 ```
 
+### IAM 권한 추가 방법
+
+#### 빠른 설정 (스크립트 사용)
+
+```bash
+./docs/add-iam-policy.sh <IAM-USER-NAME>
+```
+
+#### 상세 가이드
+
+IAM 권한 설정에 대한 자세한 내용은 다음 문서를 참조하세요:
+- **[setup-iam-permissions.md](./setup-iam-permissions.md)** - 상세한 IAM 권한 설정 가이드
+- **[iam-policy-secretsmanager.json](./iam-policy-secretsmanager.json)** - IAM 정책 JSON 파일
+
 GitHub Actions의 경우, `AWS_ACCESS_KEY_ID`와 `AWS_SECRET_ACCESS_KEY` secrets에 위 권한을 가진 IAM 사용자의 자격증명을 설정해야 합니다.
 
 ## 문제 해결
