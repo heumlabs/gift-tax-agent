@@ -1,4 +1,1 @@
-# Application Layer (자주 변경되는 앱 코드와 함께 배포)
-# Chalice는 배포 시에만 필요하므로 Lambda 런타임에는 불필요
-# Layer를 모두 사용하면 이 파일은 거의 비어있게 됨
-
+pydantic-settings
