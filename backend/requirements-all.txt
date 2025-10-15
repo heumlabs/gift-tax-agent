@@ -1,0 +1,18 @@
+# Combined Layer - All dependencies
+# AI/ML
+google-generativeai==0.8.3
+
+# Database
+psycopg2-binary==2.9.9
+SQLAlchemy==2.0.32
+pgvector==0.3.6
+
+# Utilities
+pydantic==2.9.2
+requests==2.32.4
+python-dateutil==2.9.0.post0
+python-dotenv==1.0.1
+
+# Numpy
+numpy==1.26.4
+
