@@ -12,8 +12,8 @@ from typing import Generator
 from config import settings
 
 
-# pydantic-settings에서 DATABASE_URL 가져오기
-DATABASE_URL = settings.DATABASE_URL
+# pydantic-settings에서 DATABASE_URL 가져오기 (DATABASE_URL 또는 DB_* 필드 조합)
+DATABASE_URL = settings.database_url
 
 # SQLAlchemy 엔진 생성
 engine = create_engine(

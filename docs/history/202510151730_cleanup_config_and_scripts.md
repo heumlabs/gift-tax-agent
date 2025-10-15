@@ -159,23 +159,23 @@ Container Image 배포 방식에 맞춰 불필요한 스크립트 삭제 및 환
 - pydantic-settings 타입 힌트로 IDE 지원 향상
 - 설정 클래스에 docstring 추가
 
-## AWS Secrets Manager 설정 필요
+## AWS Secrets Manager 설정
 
-배포 전 다음 시크릿을 생성해야 합니다:
+기존 시크릿 사용: `arn:aws:secretsmanager:ap-northeast-2:862108802423:secret:shuking-QbyWZz`
 
-### 1. `shuking/database`
+현재 구조:
 ```json
 {
-  "DATABASE_URL": "postgresql://user:password@host:5432/shuking"
+  "GOOGLE_API_KEY": "AIzaSy...",
+  "DB_HOST": "alfred-agent-stag.cb16259gyybz.ap-northeast-2.rds.amazonaws.com",
+  "DB_USER": "shuking",
+  "DB_PASS": "shuking-t@x!234",
+  "DB_NAME": "shuking",
+  "APP_STAGE": "prod"
 }
 ```
 
-### 2. `shuking/api-keys`
-```json
-{
-  "GEMINI_API_KEY": "your-actual-gemini-api-key"
-}
-```
+**하위 호환성**: config.py가 `DATABASE_URL` 또는 개별 `DB_*` 필드 모두 지원하도록 구현됨
 
 ## 테스트
 
@@ -191,30 +191,15 @@ Container Image 배포 방식에 맞춰 불필요한 스크립트 삭제 및 환
 
 ## 다음 단계
 
-1. **AWS Secrets Manager 설정**:
-   ```bash
-   # DATABASE_URL 시크릿 생성
-   aws secretsmanager create-secret \
-     --name shuking/database \
-     --secret-string '{"DATABASE_URL":"postgresql://..."}' \
-     --region ap-northeast-2
-
-   # API Keys 시크릿 생성
-   aws secretsmanager create-secret \
-     --name shuking/api-keys \
-     --secret-string '{"GEMINI_API_KEY":"..."}' \
-     --region ap-northeast-2
-   ```
-
-2. **로컬 .env 파일 생성**:
+1. **로컬 .env 파일 생성**:
    ```bash
    cd backend
    cp .env.example .env
    # .env 파일 수정하여 실제 값 입력
    ```
 
-3. **Lambda IAM 권한 확인**:
-   - Lambda 실행 역할에 Secrets Manager 접근 권한 필요
+2. **Lambda IAM 권한 확인**:
+   - Lambda 실행 역할(`shuking-role`)에 Secrets Manager 접근 권한 필요
    ```json
    {
      "Effect": "Allow",
@@ -222,9 +207,18 @@ Container Image 배포 방식에 맞춰 불필요한 스크립트 삭제 및 환
        "secretsmanager:GetSecretValue"
      ],
      "Resource": [
-       "arn:aws:secretsmanager:ap-northeast-2:862108802423:secret:shuking/*"
+       "arn:aws:secretsmanager:ap-northeast-2:862108802423:secret:shuking-QbyWZz"
      ]
    }
+   ```
+
+3. **(선택) Secrets Manager 시크릿 업데이트**:
+   - 필요시 새로운 환경 변수를 기존 시크릿에 추가
+   ```bash
+   aws secretsmanager update-secret \
+     --secret-id arn:aws:secretsmanager:ap-northeast-2:862108802423:secret:shuking-QbyWZz \
+     --secret-string '{"GOOGLE_API_KEY":"...","DB_HOST":"...","DB_USER":"...","DB_PASS":"...","DB_NAME":"...","APP_STAGE":"prod"}' \
+     --region ap-northeast-2
    ```
 
 ## 기타
