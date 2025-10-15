@@ -59,32 +59,17 @@ jobs:
 
       - name: Create .env file from Secrets Manager
         run: |
-          # Secrets Manager에서 환경 변수 가져오기
-          SECRET_JSON=$(aws secretsmanager get-secret-value \
+          # Secrets Manager에서 모든 환경 변수 가져오기
+          aws secretsmanager get-secret-value \
             --secret-id arn:aws:secretsmanager:ap-northeast-2:862108802423:secret:shuking-QbyWZz \
             --query SecretString \
             --output text \
-            --region $AWS_REGION)
+            --region $AWS_REGION | \
+          jq -r 'to_entries | .[] | "\(.key)=\(.value)"' > .env
 
-          # 개별 환경 변수 추출
-          GOOGLE_API_KEY=$(echo "$SECRET_JSON" | jq -r '.GOOGLE_API_KEY')
-          DB_HOST=$(echo "$SECRET_JSON" | jq -r '.DB_HOST')
-          DB_USER=$(echo "$SECRET_JSON" | jq -r '.DB_USER')
-          DB_PASS=$(echo "$SECRET_JSON" | jq -r '.DB_PASS')
-          DB_NAME=$(echo "$SECRET_JSON" | jq -r '.DB_NAME')
-          APP_STAGE=$(echo "$SECRET_JSON" | jq -r '.APP_STAGE')
-
-          # .env 파일 생성
-          cat > .env << EOF
-          ENVIRONMENT=prod
-          APP_STAGE=${APP_STAGE}
-          GOOGLE_API_KEY=${GOOGLE_API_KEY}
-          DB_HOST=${DB_HOST}
-          DB_USER=${DB_USER}
-          DB_PASS=${DB_PASS}
-          DB_NAME=${DB_NAME}
-          CORS_ALLOW_ORIGIN=https://d49mat9gykfn6.cloudfront.net
-          EOF
+          # 추가 환경 변수 append
+          echo "ENVIRONMENT=prod" >> .env
+          echo "CORS_ALLOW_ORIGIN=https://d49mat9gykfn6.cloudfront.net" >> .env
 
           echo "✅ .env file created successfully"
 
