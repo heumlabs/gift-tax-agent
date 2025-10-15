@@ -218,9 +218,41 @@ VITE_APP_ENV=development
 1. 백엔드 .env의 `CORS_ALLOW_ORIGIN`이 프론트엔드 URL과 일치하는지 확인
 2. 백엔드를 재시작하여 환경 변수를 다시 로드
 
+## 🚀 배포
+
+### Lambda Container Image 배포
+
+프로젝트는 **Lambda Container Image**를 사용하여 10GB까지 배포 가능 (기존 50MB 제한 해결)
+
+#### 최초 설정 (한 번만)
+```bash
+cd backend
+
+# Container로 마이그레이션
+./.scripts/migrate-to-container.sh
+
+# 환경변수 설정
+./.scripts/update-lambda-env.sh
+```
+
+#### 자동 배포 (GitHub Actions)
+```bash
+# main 브랜치에 푸시하면 자동 배포
+git push origin main
+```
+
+**배포 프로세스:**
+1. Docker 이미지 빌드
+2. Amazon ECR에 푸시
+3. Lambda 함수 업데이트
+
+자세한 내용은 [Container 배포 가이드](./docs/container-deployment-guide.md)를 참고하세요.
+
 ## 📚 참고 문서
 
 - [Chalice Documentation](https://aws.github.io/chalice/)
 - [Vue 3 Documentation](https://vuejs.org/)
 - [Vite Documentation](https://vitejs.dev/)
 - [PRD (Product Requirements Document)](./docs/PRD.md)
+- [Container 배포 가이드](./docs/container-deployment-guide.md)
+- [간소화된 배포 가이드](./docs/simple-deployment-guide.md) (구버전)
