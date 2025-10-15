@@ -15,6 +15,9 @@ LLM 데이터 파이프라인 자료와 법령 파서 리소스를 추가하고,
 - README·SETUP 문서에 SQLModel, pgvector 등 최신 백엔드 패키지 구성을 반영
 - `docs/llm/04-clarifying-strategy.md` 신설 및 LLM 문서 전반(01/02/03) PRD 요구사항 재정렬
 - 최신 `origin/main`을 기준으로 브랜치 리베이스 수행 후 충돌 해결
+- LLM 세부 문서를 `docs/prd_detail/ai-logic/` 하위로 이관하고 관련 다이어그램을 동일 경로로 이동
+- `docs/prd_detail/ai-logic/functional-spec.md`에 Gemini REST 호출·배포 용량 비기능 요구(LLM-7.4) 추가
+- 데이터 파이프라인/DB/메시지/Clarifying 문서에 Agent 가드레일 및 Lambda 용량 가드라인 명시
 
 ## 영향 범위
 - LLM 기술 스택 및 데이터 파이프라인 문서화 범위 확장
@@ -27,6 +30,8 @@ LLM 데이터 파이프라인 자료와 법령 파서 리소스를 추가하고,
 - 개발자 온보딩 문서가 실제 패키지 구성과 일치하여 세팅 오류 가능성 감소
 - RAG 결과 품질과 외부 검색 활용 기준이 명확해져 운영·모니터링 체계 확보
 - 브랜치 히스토리가 최신 메인 커밋을 기반으로 재정렬
+- LLM 팀이 문서 구조 변경 후에도 단일 PRD 하위 경로에서 가드레일/체크리스트를 확인 가능
+- Lambda 배포 실패 원인(레이어 용량 초과)에 대한 대응 정책이 문서화되어 운영 리스크 감소
 
 ## 테스트
 - `git rev-list --left-right --count origin/main...HEAD` 결과 `0	0` 확인
