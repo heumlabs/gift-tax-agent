@@ -1,7 +1,7 @@
 ## 데이터베이스 모델링
 
 문서 버전: v1.1  
-연관 문서: `docs/PRD.md`, `docs/prd_detail/backend-architecture.md`, `docs/llm/02-database-detail.md`
+연관 문서: `docs/PRD.md`, `docs/prd_detail/backend-architecture.md`, `docs/prd_detail/ai-logic/02-database-detail.md`
 
 ### 1. 개요
 
