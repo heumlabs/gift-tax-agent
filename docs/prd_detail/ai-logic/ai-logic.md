@@ -1,4 +1,4 @@
-## AI 로직 및 상담 흐름 설계
+# AI 로직 및 상담 흐름 설계
 
 문서 버전: v1.0  
 연관 문서: `docs/PRD.md`, `docs/backend-architecture.md`
