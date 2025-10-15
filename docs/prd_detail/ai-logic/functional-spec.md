@@ -7,6 +7,7 @@
 - **Knowledge Fidelity** (`docs/prd_detail/ai-logic/agent.md:15`) — LLM-6.3과 LLM-14.x 태스크는 모든 답변에 citation을 포함하고 근거 부족 시 재시도/경고 절차를 구현한다.
 - **Guided Conversation** (`docs/prd_detail/ai-logic/agent.md:16`) — LLM-6.1, LLM-6.4, LLM-13.2는 Clarifying 템플릿 및 상태 관리를 `04-clarifying-strategy.md`와 동기화한다.
 - **Compliance & Privacy** (`docs/prd_detail/ai-logic/agent.md:17`) — LLM-7.2, LLM-14.2는 준법 고지, 민감정보 필터링, 참고자료 취급 정책을 `03-message-format.md` 기준으로 유지한다.
+- **Gemini 모델 표준화** — 모든 챗 파이프라인 초기 버전은 `gemini-2.5-flash` REST 모델을 사용하며, 환경 변수는 `GOOGLE_API_KEY`, `GEMINI_MODEL` 두 가지만 필수로 관리한다.
 
 ## Legend
 - **Status**: ☐ (미착수), ☐▶ (진행 중), ✅ (완료)
@@ -30,7 +31,7 @@
 - **Tasks**
   - [ ] `LLM-6.2.a` 계산 가능 조건 검사 로직 구현 (Owner: TBD)
   - [ ] `LLM-6.2.b` TaxCalculationEngine 호출 인터페이스 설계 (Owner: TBD)
-  - [ ] `LLM-6.2.c` 계산 결과를 `calculation`, `assumptions`, `exceptions`, `recommendations` 필드에 매핑 (Owner: TBD)
+  - [x] `LLM-6.2.c` 계산 결과를 `calculation`, `assumptions`, `exceptions`, `recommendations` 필드에 매핑 (Owner: LLM, Issue: #19)
   - [ ] `LLM-6.2.d` 계산 불가 시 RAG 안내로 되돌리는 분기 처리 (Owner: TBD)
 
 ### LLM-6.3 법령/예규 근거 링크 노출
@@ -43,7 +44,7 @@
 ### LLM-6.4 세션 맥락 유지 및 재질문 응답
 - **Linked PRD**: `docs/PRD.md:5`, `docs/PRD.md:120`, `docs/prd_detail/ai-logic/03-message-format.md:41`
 - **Tasks**
-  - [ ] `LLM-6.4.a` 세션 상태(수집 변수, Clarifying 히스토리, RAG 컨텍스트) 저장 구조 설계 (Owner: TBD)
+  - [x] `LLM-6.4.a` 세션 상태(수집 변수, Clarifying 히스토리, RAG 컨텍스트) 저장 구조 설계 (Owner: LLM, Issue: #19)
   - [ ] `LLM-6.4.b` LangGraph 상태머신에서 컨텍스트 재사용 로직 구현 (Owner: TBD)
   - [ ] `LLM-6.4.c` 메시지 메타데이터와 DB 스키마 일치 검증 (Owner: TBD)
 
@@ -61,7 +62,7 @@
 ### LLM-7.2 준법/프라이버시 고지 및 PII 관리
 - **Linked PRD**: `docs/PRD.md:156`, `docs/prd_detail/ai-logic/03-message-format.md:10`
 - **Tasks**
-  - [ ] `LLM-7.2.a` 시스템 프롬프트에 준법 문구 포함 (Owner: TBD)
+  - [x] `LLM-7.2.a` 시스템 프롬프트에 준법 문구 포함 (Owner: LLM, Issue: #19)
   - [ ] `LLM-7.2.b` 사용자 입력에서 민감정보 감지 시 응답 가이드라인 정의 (Owner: TBD)
   - [ ] `LLM-7.2.c` Metadata에 PII 저장 금지 검증 로직 추가 (Owner: TBD)
 
@@ -75,9 +76,9 @@
 ### LLM-7.4 LLM API 호출 및 배포 패키지 경량화
 - **Linked PRD**: `docs/PRD.md:162`, `docs/prd_detail/ai-logic/01-data-pipeline.md:14`
 - **Mission Pillar**: **Compliance & Privacy**, **Knowledge Fidelity**
-- **Background**: AWS Lambda 레이어 총 용량 한도(250MB) 초과로 `google-generativeai` SDK를 포함한 배포가 실패했으며, 대안으로 Gemini REST API 호출 방식을 채택하기로 결정했다.
+- **Background**: AWS Lambda 레이어 총 용량 한도(250MB) 초과로 `google-generativeai` SDK를 포함한 배포가 실패했으며, 대안으로 Gemini REST API 호출(기본 모델: `gemini-2.5-flash`)을 채택하기로 결정했다. API 호출 시 필요한 환경 변수는 `GOOGLE_API_KEY`(필수)와 `GEMINI_MODEL`(선택, 기본값 `gemini-2.5-flash`)로 제한한다.
 - **Tasks**
-  - [ ] `LLM-7.4.a` Gemini 호출을 REST API 기반으로 재설계하고 SDK 의존성을 제거 (Owner: TBD)
+  - [x] `LLM-7.4.a` Gemini 호출을 REST API 기반으로 재설계하고 SDK 의존성을 제거 (Owner: LLM, Issue: #19)
   - [ ] `LLM-7.4.b` Lambda 배포 아티팩트(레이어 포함) 용량이 250MB 이하임을 CI에서 검증 (Owner: TBD)
   - [ ] `LLM-7.4.c` 패키지 용량 초과 시 S3 기반 배포 또는 기타 경량화 옵션을 위한 대응 플랜 문서화 (Owner: TBD)
 
@@ -137,7 +138,7 @@
 
 ### AI Logic (`docs/prd_detail/ai-logic.md`)
 - 요구사항별 Task는 위 `LLM-6.x` 및 `LLM-13.x` 항목에서 분배됨. 추가 세부 작업은 다음을 따른다.
-  - [ ] `LLM-AI-3.1.a` 시스템 프롬프트에 페르소나/구조화 출력 지시 포함 (Owner: TBD)
+  - [x] `LLM-AI-3.1.a` 시스템 프롬프트에 페르소나/구조화 출력 지시 포함 (Owner: LLM, Issue: #19)
   - [ ] `LLM-AI-4.1.a` 법령 데이터 파이프라인 검증 스크립트 작성 (Owner: TBD)
   - [ ] `LLM-AI-4.3.a` 데이터 갱신 프로세스 체크리스트 정리 (Owner: TBD)
 
@@ -149,4 +150,5 @@
 ---
 
 ## Change Log
+- 2025-10-15: Issue #19 완료 - Gemini REST 파이프라인 구축, 응답 스키마 정의, 시스템 프롬프트 작성, 단위 테스트 추가
 - 2025-10-15: 문서 초안 작성 (Owner: TBD)
