@@ -82,14 +82,14 @@ chalice deploy --stage prod
 
 ```bash
 cd backend
-./deploy_prod.sh
+./.scripts/deploy_prod.sh
 ```
 
 ### 패키지 크기 분석
 
 ```bash
 cd backend
-./analyze_package_size.sh
+./.scripts/analyze_package_size.sh
 ```
 
 ## 추가 최적화 옵션

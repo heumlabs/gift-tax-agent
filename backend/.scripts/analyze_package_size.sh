@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # Chalice 배포 패키지 크기 분석 스크립트
+# backend 디렉토리로 이동 (스크립트는 backend/.scripts/에 위치)
+cd "$(dirname "$0")/.."
 
 echo "========================================="
 echo "Chalice 패키지 크기 분석"
@@ -8,8 +10,8 @@ echo "========================================="
 echo ""
 
 # 가상환경 활성화 (필요시)
-if [ -d "../.venv" ]; then
-    source ../.venv/bin/activate
+if [ -d ".venv" ]; then
+    source .venv/bin/activate
 fi
 
 # 임시 디렉토리 생성

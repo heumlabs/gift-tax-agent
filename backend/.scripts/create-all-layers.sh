@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # 모든 Lambda Layer를 한 번에 생성하는 스크립트
+# backend 디렉토리로 이동 (스크립트는 backend/.scripts/에 위치)
+cd "$(dirname "$0")/.."
 
 set -e
 
@@ -39,7 +41,7 @@ for layer_info in "${LAYERS[@]}"; do
     echo "Creating: $layer_name"
     echo "========================================="
     
-    ./create-layer.sh "$layer_name" "$req_file"
+    ./.scripts/create-layer.sh "$layer_name" "$req_file"
     
     # ARN 저장
     VERSION=$(aws lambda list-layer-versions \

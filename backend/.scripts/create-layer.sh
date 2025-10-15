@@ -1,7 +1,9 @@
 #!/bin/bash
 
 # Lambda Layer 생성 스크립트
-# 사용법: ./create-layer.sh <layer-name> <requirements-file>
+# 사용법: ./.scripts/create-layer.sh <layer-name> <requirements-file>
+# backend 디렉토리로 이동 (스크립트는 backend/.scripts/에 위치)
+cd "$(dirname "$0")/.."
 
 set -e
 

@@ -58,7 +58,7 @@ python-dotenv==1.0.1
 
 ### 1. Layer 생성 스크립트
 
-`backend/create-layer.sh`:
+`backend/.scripts/create-layer.sh`:
 ```bash
 #!/bin/bash
 LAYER_NAME=$1

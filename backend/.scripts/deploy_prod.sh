@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # 프로덕션 배포 스크립트
-cd "$(dirname "$0")"
+# backend 디렉토리로 이동 (스크립트는 backend/.scripts/에 위치)
+cd "$(dirname "$0")/.."
 
 echo "========================================="
 echo "🚀 슈킹 백엔드 프로덕션 배포"
@@ -24,9 +25,9 @@ echo "✅ AWS 자격증명 확인 완료"
 echo ""
 echo "2. 가상환경 확인..."
 if [ -z "$VIRTUAL_ENV" ]; then
-    if [ -d "../.venv" ]; then
+    if [ -d ".venv" ]; then
         echo "⚙️  가상환경 활성화 중..."
-        source ../.venv/bin/activate
+        source .venv/bin/activate
     else
         echo "❌ 가상환경을 찾을 수 없습니다."
         exit 1

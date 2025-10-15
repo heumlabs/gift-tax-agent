@@ -12,7 +12,7 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env
 # .env 파일을 편집하여 설정 변경
-./run_local.sh  # 또는: chalice local --port 8000
+./.scripts/run_local.sh  # 또는: chalice local --port 8000
 
 # 2. 새 터미널에서 프론트엔드 설정 및 실행
 cd frontend
@@ -112,7 +112,7 @@ CREATE EXTENSION vector;
 
 **방법 1: 실행 스크립트 사용 (권장)**
 ```bash
-./run_local.sh
+./.scripts/run_local.sh
 ```
 
 **방법 2: 직접 실행**
@@ -275,7 +275,7 @@ npm install
 # 매일 작업 시작
 cd backend
 source venv/bin/activate  # 가상환경 활성화
-./run_local.sh            # 백엔드 실행
+./.scripts/run_local.sh   # 백엔드 실행
 
 # 새 터미널
 cd frontend
