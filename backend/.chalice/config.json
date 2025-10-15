@@ -1,21 +1,4 @@
 {
     "version": "2.0",
-    "app_name": "shuking",
-    "automatic_layer": true,
-    "stages": {
-        "prod": {
-            "use_container": false,
-            "manage_iam_role": false,
-            "iam_role_arn": "arn:aws:iam::862108802423:role/shuking-role",
-            "api_gateway_stage": "api",
-            "lambda_memory_size": 512,
-            "lambda_timeout": 60,
-            "environment_variables": {
-                "ENVIRONMENT": "prod",
-                "DATABASE_URL": "${DATABASE_URL}",
-                "GEMINI_API_KEY": "${GEMINI_API_KEY}",
-                "CORS_ALLOW_ORIGIN": "https://d49mat9gykfn6.cloudfront.net"
-            }
-        }
-    }
+    "app_name": "shuking"
 }

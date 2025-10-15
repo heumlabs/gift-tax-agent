@@ -33,41 +33,97 @@ jobs:
     needs: changes
     if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.workflow == 'true'
     runs-on: ubuntu-latest
+    env:
+      ECR_REPOSITORY: shuking-lambda
+      AWS_REGION: ap-northeast-2
+      LAMBDA_FUNCTION_NAME: shuking-prod
     defaults:
       run:
         working-directory: ./backend
     steps:
       - uses: actions/checkout@v5
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v6
-        with:
-          python-version: 3.12
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v5.1.0
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-2
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Fetch secrets from AWS Secrets Manager
-        run: |
-          # jq 설치 (JSON 파싱용)
-          sudo apt-get update && sudo apt-get install -y jq
-          # Secrets Manager에서 환경변수 가져오기
-          ./.scripts/fetch-secrets.sh
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Deploy to production
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build, tag, and push Docker image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          # Chalice가 자동으로 처리:
-          # - 50MB 이상 패키지는 자동으로 S3 사용
-          # - automatic_layer=true로 의존성 자동 관리
-          chalice deploy --stage prod --connection-timeout 300
+          # arm64 아키텍처로 Docker 이미지 빌드 (Lambda와 일치)
+          docker buildx build \
+            --platform linux/arm64 \
+            --push \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            .
+
+          # 이미지 URI 출력
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Update Lambda function with new image
+        env:
+          IMAGE_URI: ${{ steps.build-image.outputs.image }}
+        run: |
+          # Lambda 함수 코드 업데이트
+          aws lambda update-function-code \
+            --function-name $LAMBDA_FUNCTION_NAME \
+            --image-uri $IMAGE_URI \
+            --region $AWS_REGION
+
+          # 코드 업데이트 완료 대기
+          aws lambda wait function-updated \
+            --function-name $LAMBDA_FUNCTION_NAME \
+            --region $AWS_REGION
+
+          echo "✅ Lambda function updated successfully with image: $IMAGE_URI"
+
+      - name: Update Lambda environment variables
+        run: |
+          # Secrets Manager에서 DATABASE_URL 가져오기
+          DATABASE_URL=$(aws secretsmanager get-secret-value \
+            --secret-id shuking/database \
+            --query SecretString \
+            --output text \
+            --region $AWS_REGION | jq -r '.DATABASE_URL')
+
+          # Secrets Manager에서 GEMINI_API_KEY 가져오기
+          GEMINI_API_KEY=$(aws secretsmanager get-secret-value \
+            --secret-id shuking/api-keys \
+            --query SecretString \
+            --output text \
+            --region $AWS_REGION | jq -r '.GEMINI_API_KEY')
+
+          # Lambda 환경 변수 업데이트
+          aws lambda update-function-configuration \
+            --function-name $LAMBDA_FUNCTION_NAME \
+            --environment "Variables={
+              ENVIRONMENT=prod,
+              DATABASE_URL=$DATABASE_URL,
+              GEMINI_API_KEY=$GEMINI_API_KEY,
+              CORS_ALLOW_ORIGIN=https://d49mat9gykfn6.cloudfront.net
+            }" \
+            --region $AWS_REGION
+
+          # 설정 업데이트 완료 대기
+          aws lambda wait function-updated \
+            --function-name $LAMBDA_FUNCTION_NAME \
+            --region $AWS_REGION
+
+          echo "✅ Lambda environment variables updated successfully"
 
   deploy-frontend:
     needs: changes

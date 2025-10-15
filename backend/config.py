@@ -1,14 +1,19 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
-    APP_STAGE: str = "local"
+    """
+    애플리케이션 설정
 
-    DB_HOST: str
-    DB_NAME: str
-    DB_USER: str
-    DB_PASS: str
+    환경 변수 로드 우선순위:
+    1. Lambda 환경 변수 (프로덕션)
+    2. .env 파일 (로컬 개발)
+    """
 
-    GOOGLE_API_KEY: str
+    ENVIRONMENT: str = "local"
+    DATABASE_URL: str
+    GEMINI_API_KEY: str
+    CORS_ALLOW_ORIGIN: str = "http://localhost:5173"
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -17,10 +22,5 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    @property
-    def db_string(self):
-        return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASS}@{self.DB_HOST}/{self.DB_NAME}"
 
-
-
-settings = Settings() # type: ignore
+settings = Settings()  # type: ignore

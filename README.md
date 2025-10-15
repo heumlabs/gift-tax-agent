@@ -220,25 +220,33 @@ VITE_APP_ENV=development
 
 ## 🚀 배포
 
-### Lambda Layer 배포 (S3 기반)
+### Lambda Container Image 배포
 
-프로젝트는 S3를 통한 Lambda Layer 배포 시스템을 사용합니다.
+프로젝트는 **Lambda Container Image**를 사용하여 10GB까지 배포 가능 (기존 50MB 제한 해결)
 
+#### 최초 설정 (한 번만)
 ```bash
 cd backend
 
-# Secrets 로드
-./.scripts/fetch-secrets.sh
+# Container로 마이그레이션
+./.scripts/migrate-to-container.sh
 
-# Chalice 배포 (Chalice가 자동으로 S3 사용)
-chalice deploy --stage prod
+# 환경변수 설정
+./.scripts/update-lambda-env.sh
 ```
 
-**자동 배포 (GitHub Actions):**
-- `main` 브랜치에 푸시하면 자동으로 배포됩니다
-- Layer가 자동으로 S3에 업로드되고 Lambda에 적용됩니다
+#### 자동 배포 (GitHub Actions)
+```bash
+# main 브랜치에 푸시하면 자동 배포
+git push origin main
+```
 
-자세한 내용은 [S3 Layer 배포 가이드](./docs/s3-layer-deployment-guide.md)를 참고하세요.
+**배포 프로세스:**
+1. Docker 이미지 빌드
+2. Amazon ECR에 푸시
+3. Lambda 함수 업데이트
+
+자세한 내용은 [Container 배포 가이드](./docs/container-deployment-guide.md)를 참고하세요.
 
 ## 📚 참고 문서
 
@@ -246,4 +254,5 @@ chalice deploy --stage prod
 - [Vue 3 Documentation](https://vuejs.org/)
 - [Vite Documentation](https://vitejs.dev/)
 - [PRD (Product Requirements Document)](./docs/PRD.md)
-- [S3 Layer 배포 가이드](./docs/s3-layer-deployment-guide.md)
+- [Container 배포 가이드](./docs/container-deployment-guide.md)
+- [간소화된 배포 가이드](./docs/simple-deployment-guide.md) (구버전)
