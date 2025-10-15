@@ -14,12 +14,13 @@
 `backend/config.py`에 정의된 환경변수들:
 
 ```python
-- APP_STAGE      # 애플리케이션 스테이지 (local/dev/prod)
+- ENVIRONMENT    # 환경 (local/dev/prod)
 - DB_HOST        # 데이터베이스 호스트
 - DB_NAME        # 데이터베이스 이름
 - DB_USER        # 데이터베이스 사용자
 - DB_PASS        # 데이터베이스 비밀번호
 - GOOGLE_API_KEY # Google Gemini API 키
+- CORS_ALLOW_ORIGIN # CORS 허용 오리진
 ```
 
 ## Secrets 가져오기
@@ -85,7 +86,6 @@ GitHub Actions 워크플로우에서 자동으로 secrets를 가져옵니다:
 aws secretsmanager update-secret \
     --secret-id arn:aws:secretsmanager:ap-northeast-2:862108802423:secret:shuking-QbyWZz \
     --secret-string '{
-        "APP_STAGE": "prod",
         "DB_HOST": "your-db-host",
         "DB_NAME": "your-db-name",
         "DB_USER": "your-db-user",
