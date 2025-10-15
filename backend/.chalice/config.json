@@ -1,4 +1,15 @@
 {
     "version": "2.0",
-    "app_name": "shuking"
+    "app_name": "shuking",
+    "automatic_layer": true,
+    "stages": {
+        "prod": {
+            "manage_iam_role": false,
+            "iam_role_arn": "arn:aws:iam::862108802423:role/shuking-role",
+            "api_gateway_stage": "api",
+            "lambda_memory_size": 512,
+            "lambda_timeout": 60,
+            "s3_bucket": "aws-chalice-shuking-deployments"
+        }
+    }
 }

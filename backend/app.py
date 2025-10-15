@@ -59,10 +59,10 @@ def health_check():
 # ===== Session Endpoints =====
 
 
-@app.route("/api/sessions", methods=["POST"], cors=cors_config)
+@app.route("/sessions", methods=["POST"], cors=cors_config)
 def create_session():
     """
-    POST /api/sessions
+    POST /sessions
     새로운 대화 세션 생성
     """
     client_id_hash = get_client_id_hash(app.current_request)
@@ -73,10 +73,10 @@ def create_session():
     )
 
 
-@app.route("/api/sessions", methods=["GET"], cors=cors_config)
+@app.route("/sessions", methods=["GET"], cors=cors_config)
 def get_sessions():
     """
-    GET /api/sessions?limit=20&cursor=xxx
+    GET /sessions?limit=20&cursor=xxx
     해당 클라이언트의 모든 세션 목록 조회
     """
     client_id_hash = get_client_id_hash(app.current_request)
@@ -88,10 +88,10 @@ def get_sessions():
     return Response(body=result.model_dump(mode="json", by_alias=True), status_code=200)
 
 
-@app.route("/api/sessions/{session_id}", methods=["PATCH"], cors=cors_config)
+@app.route("/sessions/{session_id}", methods=["PATCH"], cors=cors_config)
 def update_session(session_id: str):
     """
-    PATCH /api/sessions/{id}
+    PATCH /sessions/{id}
     특정 세션의 제목 수정
     """
     client_id_hash = get_client_id_hash(app.current_request)
@@ -116,10 +116,10 @@ def update_session(session_id: str):
     )
 
 
-@app.route("/api/sessions/{session_id}", methods=["DELETE"], cors=cors_config)
+@app.route("/sessions/{session_id}", methods=["DELETE"], cors=cors_config)
 def delete_session(session_id: str):
     """
-    DELETE /api/sessions/{id}
+    DELETE /sessions/{id}
     특정 세션 삭제
     """
     client_id_hash = get_client_id_hash(app.current_request)
@@ -135,10 +135,10 @@ def delete_session(session_id: str):
 # ===== Message Endpoints =====
 
 
-@app.route("/api/sessions/{session_id}/messages", methods=["GET"], cors=cors_config)
+@app.route("/sessions/{session_id}/messages", methods=["GET"], cors=cors_config)
 def get_messages(session_id: str):
     """
-    GET /api/sessions/{id}/messages?limit=30&cursor=xxx
+    GET /sessions/{id}/messages?limit=30&cursor=xxx
     특정 세션의 메시지 목록 조회
     """
     client_id_hash = get_client_id_hash(app.current_request)
@@ -150,10 +150,10 @@ def get_messages(session_id: str):
     return Response(body=result.model_dump(mode="json", by_alias=True), status_code=200)
 
 
-@app.route("/api/sessions/{session_id}/messages", methods=["POST"], cors=cors_config)
+@app.route("/sessions/{session_id}/messages", methods=["POST"], cors=cors_config)
 def create_message(session_id: str):
     """
-    POST /api/sessions/{id}/messages
+    POST /sessions/{id}/messages
     사용자 메시지를 보내고 AI의 응답을 받음
     """
     client_id_hash = get_client_id_hash(app.current_request)

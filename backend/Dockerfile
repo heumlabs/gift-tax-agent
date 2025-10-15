@@ -10,10 +10,14 @@ RUN pip install --no-cache-dir -r ${LAMBDA_TASK_ROOT}/requirements.txt
 # Copy application code
 COPY app.py ${LAMBDA_TASK_ROOT}/
 COPY lambda_handler.py ${LAMBDA_TASK_ROOT}/
+COPY config.py ${LAMBDA_TASK_ROOT}/
 COPY .chalice ${LAMBDA_TASK_ROOT}/.chalice/
 
 # Copy chalicelib directory
 COPY chalicelib ${LAMBDA_TASK_ROOT}/chalicelib/
+
+# Copy .env file (created in CI/CD from Secrets Manager)
+COPY .env ${LAMBDA_TASK_ROOT}/
 
 # Lambda handler for Chalice Container Image
 CMD ["lambda_handler.handler"]
