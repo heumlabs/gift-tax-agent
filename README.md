@@ -227,13 +227,10 @@ VITE_APP_ENV=development
 ```bash
 cd backend
 
-# Layer 배포 (S3를 통해)
-./.scripts/deploy-layer-s3.sh shuking-deps-layer requirements-all.txt
+# Secrets 로드
+./.scripts/fetch-secrets.sh
 
-# config.json 업데이트
-./.scripts/update-layer-config.sh
-
-# Chalice 배포
+# Chalice 배포 (Chalice가 자동으로 S3 사용)
 chalice deploy --stage prod
 ```
 

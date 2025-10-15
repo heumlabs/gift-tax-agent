@@ -26,7 +26,8 @@ cd backend
 ./.scripts/fetch-secrets.sh
 
 # 배포 (Chalice가 알아서 처리)
-chalice deploy --stage prod --s3-bucket shuking-lambda-deployment
+# 50MB 이상 패키지는 자동으로 S3 사용
+chalice deploy --stage prod
 ```
 
 ### 자동 배포 (GitHub Actions)
@@ -103,13 +104,11 @@ numpy==1.26.4
 
 ```yaml
 deploy-backend:
-  env:
-    S3_BUCKET: shuking-lambda-deployment
   steps:
     - Setup Python
     - Install dependencies (pip install -r requirements.txt)
     - Fetch secrets
-    - chalice deploy --s3-bucket ${S3_BUCKET}  # 끝!
+    - chalice deploy --stage prod  # 끝!
 ```
 
 **간단한 3단계:**
@@ -119,12 +118,14 @@ deploy-backend:
 
 ## S3 버킷
 
-### 버킷 이름
-`shuking-lambda-deployment`
+### 자동 관리
+Chalice가 자동으로 S3 버킷을 생성하고 관리합니다.
+- 50MB 이상의 패키지는 자동으로 S3에 업로드
+- 버킷 이름: Chalice가 자동 생성 (예: `aws-chalice-<hash>`)
 
 ### 자동 생성 항목
 ```
-s3://shuking-lambda-deployment/
+s3://aws-chalice-<hash>/
 ├── deployments/
 │   └── <deployment-package>.zip  # Chalice 앱
 └── layers/  # Chalice가 자동 생성한 Layer
@@ -135,10 +136,8 @@ s3://shuking-lambda-deployment/
 
 ### 배포 실패 시
 
-#### 1. S3 버킷 생성
-```bash
-aws s3 mb s3://shuking-lambda-deployment --region ap-northeast-2
-```
+#### 1. S3 버킷
+Chalice가 자동으로 생성하므로 수동 생성 불필요
 
 #### 2. IAM 권한 확인
 필요한 권한:
@@ -205,7 +204,7 @@ aws lambda get-function-configuration \
 
 ### 현재 (간단)
 ```
-1. chalice deploy --s3-bucket shuking-lambda-deployment
+1. chalice deploy --stage prod
 ```
 
 ## FAQ
@@ -228,8 +227,8 @@ aws lambda get-function-configuration \
 ## 결론
 
 **핵심:**
-- `automatic_layer: true` - Chalice가 알아서
-- `--s3-bucket` - 큰 패키지 자동 업로드
+- `automatic_layer: true` - Chalice가 의존성 자동 관리
+- 50MB 이상 패키지 자동으로 S3 업로드
 - **개발자는 코드 작성에만 집중!**
 
 간단하고 강력한 배포 시스템입니다. 🚀
