@@ -55,6 +55,13 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-2
 
+      - name: Fetch secrets from AWS Secrets Manager
+        run: |
+          # jq 설치 (JSON 파싱용)
+          sudo apt-get update && sudo apt-get install -y jq
+          # Secrets Manager에서 환경변수 가져오기
+          ./.scripts/fetch-secrets.sh
+
       - name: Deploy to production
         env:
           AWS_LAMBDA_LAYER_S3_BUCKET: shuking-lambda-deployment
