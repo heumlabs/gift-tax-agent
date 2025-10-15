@@ -5,12 +5,17 @@
     "stages": {
         "prod": {
             "layers": [
-                "arn:aws:lambda:ap-northeast-2:862108802423:layer:numpy-py312:1"
+                "arn:aws:lambda:ap-northeast-2:862108802423:layer:numpy-py312:1",
+                "arn:aws:lambda:ap-northeast-2:862108802423:layer:shuking-ai-layer:1",
+                "arn:aws:lambda:ap-northeast-2:862108802423:layer:shuking-db-layer:1",
+                "arn:aws:lambda:ap-northeast-2:862108802423:layer:shuking-utils-layer:1"
             ],
             "use_container": false,
             "manage_iam_role": false,
             "iam_role_arn": "arn:aws:iam::862108802423:role/shuking-role",
             "api_gateway_stage": "api",
+            "lambda_memory_size": 512,
+            "lambda_timeout": 60,
             "environment_variables": {
                 "ENVIRONMENT": "prod",
                 "DATABASE_URL": "${DATABASE_URL}",

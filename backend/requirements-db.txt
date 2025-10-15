@@ -1,0 +1,6 @@
+# Database Layer
+# PostgreSQL + ORM (~15MB)
+psycopg2-binary==2.9.9
+SQLAlchemy==2.0.32
+pgvector==0.3.6
+

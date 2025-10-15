@@ -1,9 +1,5 @@
 from chalice import Chalice, CORSConfig
 import os
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
 
 # CORS configuration
 cors_config = CORSConfig(
