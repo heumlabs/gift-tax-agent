@@ -40,12 +40,16 @@ class GeminiClient:
                 return resp.json()
         except httpx.HTTPStatusError as exc:
             response = exc.response
-            body = response.json() if response else {}
-            message = self._build_error_message(response.status_code if response else 500, body)
-            LOGGER.exception("Gemini HTTPStatusError (status=%s): %s", getattr(response, "status_code", None), message)
-            raise GeminiClientError(status_code=getattr(response, "status_code", 500), message=message, payload=body) from exc
+            try:
+                body = response.json() if response else {}
+            except Exception:
+                body = {}
+            status_code = response.status_code if response else 500
+            message = self._build_error_message(status_code, body)
+            LOGGER.exception("Gemini HTTPStatusError (status=%s): %s", status_code, message)
+            raise GeminiClientError(status_code=status_code, message=message, payload=body) from exc
         except httpx.RequestError as exc:
-            LOGGER.exception("Gemini RequestError: %s", exc)
+            LOGGER.exception("Gemini RequestError")
             raise GeminiClientError(status_code=599, message=str(exc)) from exc
 
     @staticmethod

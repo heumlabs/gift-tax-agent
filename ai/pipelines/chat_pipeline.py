@@ -34,10 +34,10 @@ class ChatPipeline:
                 user_message=request.content,
             )
         except GeminiClientError as exc:
-            LOGGER.exception("GeminiClientError: status=%s message=%s", exc.status_code, exc, exc_info=exc)
+            LOGGER.exception("GeminiClientError: status=%s", exc.status_code)
             raise
-        except Exception as exc:  # noqa: B902
-            LOGGER.exception("Unexpected error from Gemini pipeline: %s", exc)
+        except Exception as exc:
+            LOGGER.exception("Unexpected error from Gemini pipeline")
             raise ChatPipelineError(str(exc)) from exc
 
         return ChatResponse(content=content)
