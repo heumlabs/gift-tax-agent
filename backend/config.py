@@ -5,7 +5,7 @@ from typing import Optional
 class Settings(BaseSettings):
     """
     애플리케이션 설정
-    
+
     환경 변수 로드 우선순위:
     1. Lambda 환경 변수 (프로덕션)
     2. .env 파일 (로컬 개발)
@@ -39,10 +39,10 @@ class Settings(BaseSettings):
         """DATABASE_URL 반환 (없으면 개별 필드로 조합)"""
         if self.DATABASE_URL:
             return self.DATABASE_URL
-        
+
         if all([self.DB_HOST, self.DB_NAME, self.DB_USER, self.DB_PASS]):
             return f"postgresql://{self.DB_USER}:{self.DB_PASS}@{self.DB_HOST}:5432/{self.DB_NAME}"
-        
+
         raise ValueError("DATABASE_URL or DB_* fields must be provided")
 
     @property
