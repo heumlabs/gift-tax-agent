@@ -64,13 +64,16 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           # arm64 아키텍처로 Docker 이미지 빌드 (Lambda와 일치)
+          # --provenance=false --sbom=false: Lambda 호환성을 위해 추가 메타데이터 비활성화
           docker buildx build \
             --platform linux/arm64 \
+            --provenance=false \
+            --sbom=false \
             --push \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
             .
-
+          
           # 이미지 URI 출력
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
