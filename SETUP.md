@@ -58,9 +58,11 @@ pip install -r requirements.txt
 
 설치되는 주요 패키지:
 - `chalice`: AWS Chalice 프레임워크
-- `google-generativeai`: Google Gemini AI
+- `google-generativeai`: Google Gemini AI 연동
 - `psycopg2-binary`: PostgreSQL 드라이버
-- `SQLAlchemy`: ORM
+- `SQLAlchemy`: ORM 기반
+- `sqlmodel`: SQLAlchemy 위에서 모델 정의를 단순화
+- `pgvector`: 벡터 연산 및 임베딩 저장
 - `python-dotenv`: 환경 변수 관리
 
 #### 1.4 환경 변수 설정
@@ -350,4 +352,3 @@ npm run build  # TypeScript 컴파일 포함
 ---
 
 ✨ 즐거운 개발 되세요! Happy Coding!
-

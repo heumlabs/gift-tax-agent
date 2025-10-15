@@ -25,8 +25,9 @@
 - **Framework**: AWS Chalice (Python 3.12)
 - **Deployment**: Lambda Container Image (arm64)
 - **API Gateway**: REST API (Regional)
-- **Database**: PostgreSQL (with pgvector)
-- **AI**: Google Gemini API
+- **Database**: PostgreSQL (pgvector 확장 포함)
+- **AI**: Google Gemini 1.5 Pro
+- **ORM**: SQLAlchemy + SQLModel
 
 ### Frontend
 - **Framework**: Vue 3 + Vite
