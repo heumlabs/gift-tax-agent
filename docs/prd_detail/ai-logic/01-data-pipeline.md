@@ -11,6 +11,11 @@
 - **목표**: 법령 텍스트를 처리하여 pgvector에 저장하고 RAG 시스템 구축
 - **범위**: 데이터 준비 및 벡터 DB 구축 (상세 상담 플로우는 `docs/prd_detail/ai-logic.md` 참조)
 
+### Agent Guardrails 연계
+- **Knowledge Fidelity** (`docs/prd_detail/ai-logic/agent.md:15`) — 공식 소스를 정제하고 chunk 품질을 통제해 모든 답변에 신뢰 가능한 citation을 제공할 수 있도록 한다.
+- **Compliance & Privacy** (`docs/prd_detail/ai-logic/agent.md:17`) — 데이터 적재 시 민감정보가 포함되지 않도록 전처리·메타데이터 정책을 준수하며, 출처 추적이 가능한 구조를 유지한다.
+- **운영 가드레일**: Lambda 레이어 용량 한도(250MB)를 넘지 않도록 LLM 의존성은 REST API 호출 방식으로 최소화하고, 배포 아티팩트 크기 모니터링을 CI에 포함한다.
+
 ## 2. 기술 스택 요약
 
 - **임베딩**: Google Gemini text-embedding-004 (768차원)

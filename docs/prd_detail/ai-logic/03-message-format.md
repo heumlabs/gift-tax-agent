@@ -11,6 +11,11 @@
 - **목적**: 프론트엔드에서 상세한 답변 렌더링 지원
 - **저장**: PostgreSQL `messages` 테이블의 `metadata JSONB` 컬럼
 
+### Agent Guardrails 연계
+- **Knowledge Fidelity** (`docs/prd_detail/ai-logic/agent.md:15`) — `citations`/`clarifying_context` 구조를 통해 답변마다 근거를 노출하고 근거 부재 시 재확인 절차를 수행한다.
+- **Compliance & Privacy** (`docs/prd_detail/ai-logic/agent.md:17`) — 준법 고지, 민감정보 비저장 정책을 `metadata` 필드로 강제하며, 참고자료/웹검색은 참고용으로만 라벨링한다.
+- **Deterministic Accuracy** (`docs/prd_detail/ai-logic/agent.md:14`) — 계산 결과(`calculation`, `assumptions`, `warnings`)를 구조화해 결정론 엔진 산출값을 그대로 사용자에게 전달한다.
+
 ---
 
 ## 2. 데이터베이스 저장 구조
@@ -49,6 +54,7 @@ CREATE TABLE messages (
 | `alternatives[]` | 대안 시나리오 리스트 | 옵션 | 3.4 참조 |
 | `tool_calls[]` | 사용된 도구 로그 | 옵션 | 3.5 참조 |
 | `assumptions[]` | 적용된 전제 목록 | 옵션 | Clarifying 결과 |
+| `clarifying_context[]` | Clarifying 중 제공한 설명 및 참고 자료 | 옵션 | 3.7 참조 |
 | `exceptions[]` | 예외/주의 사항 | 옵션 | 답변 본문에 재노출 |
 | `recommendations[]` | 후속 권고 사항 | 옵션 | 사용자 액션 안내 |
 | `missing_parameters[]` | 미수집 필수 변수 정보 | 옵션 | `{ name, reason }` 구조 |
@@ -276,6 +282,33 @@ interface Feedback {
     "comment": "도움이 되었습니다!",
     "timestamp": "2025-10-14T10:10:00Z"
   }
+}
+```
+
+---
+
+### 3.7. ClarifyingContext (설명 스니펫)
+
+**목적**: Clarifying 단계에서 사용자에게 제공한 용어 설명과 RAG 기반 참고 자료를 추적하여 이후 노드(계산, QA)에서도 일관된 안내를 유지
+
+| 필드 | 설명 | 필수 | 비고 |
+|------|------|------|------|
+| `source_id` | `law_sources` 또는 `knowledge_sources` ID | 옵션 | 외부 참조가 없으면 생략 |
+| `summary` | 사용자에게 전달한 설명 요약 | ✅ | 200자 내외 권장 |
+| `detail_url` | 자세한 참고 링크 | 옵션 | 법제처/국세청 등 |
+| `confidence` | 설명에 대한 모델 확신도 (0~1) | 옵션 | Clarifying 모델 출력 |
+
+**JSON 예시**:
+```json
+{
+  "clarifying_context": [
+    {
+      "source_id": 321,
+      "summary": "최근 10년 내 동일인에게서 받은 증여금액은 합산 과세 대상입니다.",
+      "detail_url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=237786#0000",
+      "confidence": 0.82
+    }
+  ]
 }
 ```
 

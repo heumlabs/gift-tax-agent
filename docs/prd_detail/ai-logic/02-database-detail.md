@@ -8,6 +8,10 @@
 
 이 문서는 **LLM 팀이 직접 관리·활용하는 데이터 구조**만 다룹니다. 전체 서비스 스키마(세션, 메시지 등)는 PRD 산출물인 `docs/prd_detail/database-model.md`를 단일 진실 소스로 삼습니다. 중복 정의를 피하기 위해 이 문서에서는 LLM 파이프라인에 특화된 테이블과 인덱스, 운영 정책만 명시합니다.
 
+### Agent Guardrails 연계
+- **Deterministic Accuracy** (`docs/prd_detail/ai-logic/agent.md:14`) — `tax_rule_config`, `messages.metadata` 구조를 고정해 계산 엔진이 산출한 수치를 손실 없이 보존한다.
+- **Compliance & Privacy** (`docs/prd_detail/ai-logic/agent.md:17`) — 법령/지식 소스와 메타데이터에 출처·추적 정보를 포함하고, PII 저장 금지 정책을 스키마 수준에서 확인한다.
+
 ## 2. LLM 핵심 테이블
 
 ### 2.1. `law_sources`
