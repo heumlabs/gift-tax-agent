@@ -1,3 +1,5 @@
 """Client implementations used by the AI chat prototype."""
 
-from .gemini import GeminiClient  # noqa: F401
+from .gemini import GeminiClient
+
+__all__ = ["GeminiClient"]

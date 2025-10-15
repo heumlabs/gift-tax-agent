@@ -1,4 +1,4 @@
-# 작업 이력: 202501301600_llm_rest_guardrails
+# 작업 이력: 202510151429_llm_rest_guardrails
 
 ## 작업 요약
 LLM 문서 세트를 `docs/prd_detail/ai-logic/` 경로로 통합하고, Gemini REST 호출 전환 및 Lambda 배포 용량 가드레일을 PRD-Detail 문서에 반영했습니다. 관련 변경 사항은 PR `#18 chore: document LLM REST guardrails`로 제출되었습니다.

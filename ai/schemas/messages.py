@@ -23,7 +23,7 @@ class ChatResponse:
     calculation: Optional[Dict[str, object]] = None
     clarifying_context: List[Dict[str, object]] = field(default_factory=list)
     assumptions: List[str] = field(default_factory=list)
-    missing_parameters: List[Dict[str, Any]] = field(default_factory=list)
+    missing_parameters: List[Dict[str, object]] = field(default_factory=list)
     exceptions: List[str] = field(default_factory=list)
     recommendations: List[str] = field(default_factory=list)
-    tool_calls: List[Dict[str, Any]] = field(default_factory=list)
+    tool_calls: List[Dict[str, object]] = field(default_factory=list)

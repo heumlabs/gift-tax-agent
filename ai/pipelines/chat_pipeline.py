@@ -27,7 +27,7 @@ class ChatPipeline:
         return cls(gemini_client=client, system_prompt=system_prompt or DEFAULT_SYSTEM_PROMPT)
 
     async def run(self, request: ChatRequest) -> ChatResponse:
-        LOGGER.debug("Executing chat pipeline with content=%s", request.content)
+        LOGGER.debug("Executing chat pipeline with content_length=%d", len(request.content))
         try:
             content = await self.gemini_client.generate_content(
                 system_prompt=self.system_prompt,
