@@ -58,13 +58,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Create .env file from Secrets Manager
-        run: |
-          cd backend
-          ./.scripts/fetch-secrets.sh
-          
-          # 프로덕션 환경 변수 추가
-          echo "ENVIRONMENT=prod" >> .env
-          echo "CORS_ALLOW_ORIGIN=https://d49mat9gykfn6.cloudfront.net" >> .env
+        run: ./.scripts/fetch-secrets.sh
 
       - name: Build, tag, and push Docker image to Amazon ECR
         id: build-image
