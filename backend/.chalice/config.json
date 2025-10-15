@@ -1,14 +1,11 @@
 {
     "version": "2.0",
     "app_name": "shuking",
-    "automatic_layer": true,
+    "automatic_layer": false,
     "stages": {
         "prod": {
             "layers": [
-                "arn:aws:lambda:ap-northeast-2:862108802423:layer:shuking-numpy:1",
-                "arn:aws:lambda:ap-northeast-2:862108802423:layer:shuking-ai-layer:1",
-                "arn:aws:lambda:ap-northeast-2:862108802423:layer:shuking-db-layer:1",
-                "arn:aws:lambda:ap-northeast-2:862108802423:layer:shuking-utils-layer:1"
+                "arn:aws:lambda:ap-northeast-2:862108802423:layer:shuking-deps-layer:1"
             ],
             "use_container": false,
             "manage_iam_role": false,
