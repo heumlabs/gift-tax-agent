@@ -59,19 +59,12 @@ jobs:
 
       - name: Create .env file from Secrets Manager
         run: |
-          # Secrets Manager에서 모든 환경 변수 가져오기
-          aws secretsmanager get-secret-value \
-            --secret-id arn:aws:secretsmanager:ap-northeast-2:862108802423:secret:shuking-QbyWZz \
-            --query SecretString \
-            --output text \
-            --region $AWS_REGION | \
-          jq -r 'to_entries | .[] | "\(.key)=\(.value)"' > .env
-
-          # 추가 환경 변수 append
+          cd backend
+          ./.scripts/fetch-secrets.sh
+          
+          # 프로덕션 환경 변수 추가
           echo "ENVIRONMENT=prod" >> .env
           echo "CORS_ALLOW_ORIGIN=https://d49mat9gykfn6.cloudfront.net" >> .env
-
-          echo "✅ .env file created successfully"
 
       - name: Build, tag, and push Docker image to Amazon ECR
         id: build-image
