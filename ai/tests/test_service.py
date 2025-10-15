@@ -24,10 +24,7 @@ def test_generate_assistant_message_success(mock_pipeline):
 
     result = generate_assistant_message(content="Hello")
 
-    assert result["role"] == "assistant"
     assert result["content"] == "Test response"
-    assert "id" in result
-    assert "createdAt" in result
     assert "metadata" in result
     assert result["metadata"]["citations"] == []
 

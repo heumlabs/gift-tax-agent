@@ -3,7 +3,7 @@ chalice
 pydantic-settings
 
 # AI/ML
-google-generativeai==0.8.3
+httpx>=0.28.0,<0.29.0
 
 # Database
 psycopg2-binary==2.9.9

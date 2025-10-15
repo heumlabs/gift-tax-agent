@@ -46,6 +46,15 @@
   }
 }
 ```
+
+**LLM 모듈 반환 값**:
+```python
+{
+  "content": "배우자에게 1억원을 증여하면...",
+  "metadata": { ... }
+}
+```
+- `id`, `role`, `createdAt`은 백엔드가 생성하여 추가합니다.
 - `metadata` 구조는 `docs/prd_detail/ai-logic/03-message-format.md`에 정의된 Assistant Message 스키마를 따릅니다. 현재 프로토타입에서는 대부분 빈 배열/`null`을 반환합니다.
 
 ### Error Responses
@@ -71,8 +80,10 @@
 
 1. 백엔드에서 Request 바디 검증 (`content` 문자열 확인).
 2. `ai.service.generate_assistant_message(content, metadata)` 호출.
-3. 반환된 `assistantMessage` 객체를 그대로 응답(`200 OK`)으로 전달.
+3. 반환된 `{"content": str, "metadata": dict}`에 백엔드가 `id`, `role`, `createdAt`을 추가하여 응답 생성.
 4. 예외 발생 시 위 표의 에러 코드/메시지로 변환 후 반환.
+
+**Note**: LLM 모듈은 핵심 AI 로직(`content`, `metadata`)만 반환하며, 인프라 필드(`id`, `role`, `createdAt`)는 백엔드가 생성합니다.
 
 ## 4. 테스트 메모
 
