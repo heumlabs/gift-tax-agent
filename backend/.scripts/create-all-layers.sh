@@ -26,6 +26,7 @@ echo ""
 
 # Layer 생성
 LAYERS=(
+    "shuking-numpy-layer:requirements-numpy.txt"
     "shuking-ai-layer:requirements-ai.txt"
     "shuking-db-layer:requirements-db.txt"
     "shuking-utils-layer:requirements-utils.txt"
@@ -70,7 +71,6 @@ echo ""
 echo "📝 .chalice/config.json 업데이트 내용:"
 echo ""
 echo "  \"layers\": ["
-echo "    \"arn:aws:lambda:ap-northeast-2:862108802423:layer:numpy-py312:1\","
 for arn in "${LAYER_ARNS[@]}"; do
     echo "    \"$arn\","
 done | sed '$ s/,$//'
