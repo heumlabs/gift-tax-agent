@@ -57,6 +57,37 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Create .env file from Secrets Manager
+        run: |
+          # Secrets Manager에서 환경 변수 가져오기
+          SECRET_JSON=$(aws secretsmanager get-secret-value \
+            --secret-id arn:aws:secretsmanager:ap-northeast-2:862108802423:secret:shuking-QbyWZz \
+            --query SecretString \
+            --output text \
+            --region $AWS_REGION)
+
+          # 개별 환경 변수 추출
+          GOOGLE_API_KEY=$(echo "$SECRET_JSON" | jq -r '.GOOGLE_API_KEY')
+          DB_HOST=$(echo "$SECRET_JSON" | jq -r '.DB_HOST')
+          DB_USER=$(echo "$SECRET_JSON" | jq -r '.DB_USER')
+          DB_PASS=$(echo "$SECRET_JSON" | jq -r '.DB_PASS')
+          DB_NAME=$(echo "$SECRET_JSON" | jq -r '.DB_NAME')
+          APP_STAGE=$(echo "$SECRET_JSON" | jq -r '.APP_STAGE')
+
+          # .env 파일 생성
+          cat > .env << EOF
+          ENVIRONMENT=prod
+          APP_STAGE=${APP_STAGE}
+          GOOGLE_API_KEY=${GOOGLE_API_KEY}
+          DB_HOST=${DB_HOST}
+          DB_USER=${DB_USER}
+          DB_PASS=${DB_PASS}
+          DB_NAME=${DB_NAME}
+          CORS_ALLOW_ORIGIN=https://d49mat9gykfn6.cloudfront.net
+          EOF
+
+          echo "✅ .env file created successfully"
+
       - name: Build, tag, and push Docker image to Amazon ECR
         id: build-image
         env:
@@ -94,8 +125,8 @@ jobs:
 
           echo "✅ Lambda function updated successfully with image: $IMAGE_URI"
 
-      # Note: Lambda 환경 변수는 초기 설정 후 변경할 필요가 없음
-      # 환경 변수 초기 설정은 backend/.scripts/setup-lambda-env.sh 스크립트 사용
+      # Note: .env 파일이 Docker 이미지에 포함되어 있어 Lambda 환경 변수 설정 불필요
+      # pydantic-settings가 이미지 내부의 .env 파일을 자동으로 로드
 
   deploy-frontend:
     needs: changes

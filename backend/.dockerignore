@@ -28,9 +28,10 @@ ENV
 .chalice/deployed
 .chalice/deployments
 
-# Environment files
-.env
-.env.*
+# Environment files (빌드 시 생성되는 .env는 포함)
+.env.example
+.env.local
+.env.*.local
 
 # Tests
 tests
