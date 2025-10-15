@@ -16,7 +16,7 @@ LLM 문서 세트를 `docs/prd_detail/ai-logic/` 경로로 통합하고, Gemini 
 - Gemini SDK 제거를 전제로 한 REST 호출 전략이 명시되어 의존성 관리 부담 감소
 
 ## 테스트
-- 문서 변경のみ (별도 테스트 없음)
+- 문서 변경 (별도 테스트 없음)
 
 ## 기타
 - 변경 내용은 `docs-llm-guardrails-rest-api` 브랜치에서 관리되고, GH PR(#18)로 리뷰 요청이 올라가 있습니다.
