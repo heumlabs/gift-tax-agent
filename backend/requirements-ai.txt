@@ -1,4 +1,0 @@
-# AI/ML Layer
-# 가장 큰 패키지 (~40MB)
-google-generativeai==0.8.3
-

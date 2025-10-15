@@ -218,9 +218,35 @@ VITE_APP_ENV=development
 1. 백엔드 .env의 `CORS_ALLOW_ORIGIN`이 프론트엔드 URL과 일치하는지 확인
 2. 백엔드를 재시작하여 환경 변수를 다시 로드
 
+## 🚀 배포
+
+### Lambda Layer 배포 (S3 기반)
+
+프로젝트는 S3를 통한 Lambda Layer 배포 시스템을 사용합니다.
+
+```bash
+cd backend
+
+# Layer 배포 (S3를 통해)
+./.scripts/deploy-layer-s3.sh shuking-deps-layer requirements-all.txt
+
+# config.json 업데이트
+./.scripts/update-layer-config.sh
+
+# Chalice 배포
+chalice deploy --stage prod
+```
+
+**자동 배포 (GitHub Actions):**
+- `main` 브랜치에 푸시하면 자동으로 배포됩니다
+- Layer가 자동으로 S3에 업로드되고 Lambda에 적용됩니다
+
+자세한 내용은 [S3 Layer 배포 가이드](./docs/s3-layer-deployment-guide.md)를 참고하세요.
+
 ## 📚 참고 문서
 
 - [Chalice Documentation](https://aws.github.io/chalice/)
 - [Vue 3 Documentation](https://vuejs.org/)
 - [Vite Documentation](https://vitejs.dev/)
 - [PRD (Product Requirements Document)](./docs/PRD.md)
+- [S3 Layer 배포 가이드](./docs/s3-layer-deployment-guide.md)

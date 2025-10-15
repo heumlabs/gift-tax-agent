@@ -33,6 +33,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.workflow == 'true'
     runs-on: ubuntu-latest
+    env:
+      S3_BUCKET: shuking-lambda-deployment
     defaults:
       run:
         working-directory: ./backend
@@ -64,7 +66,9 @@ jobs:
 
       - name: Deploy to production
         run: |
-          chalice deploy --stage prod --connection-timeout 300
+          # Chalice가 자동으로 큰 패키지를 S3에 업로드
+          # automatic_layer=true로 의존성 자동 관리
+          chalice deploy --stage prod --s3-bucket ${S3_BUCKET} --connection-timeout 300
 
   deploy-frontend:
     needs: changes
