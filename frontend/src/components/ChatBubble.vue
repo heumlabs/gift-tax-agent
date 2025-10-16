@@ -97,15 +97,15 @@ onMounted(() => {
       message.role === 'user' ? 'justify-end' : 'justify-start',
     ]"
   >
-    <!-- AI 아이콘 -->
+    <!-- AI 아이콘 (모바일에서 숨김) -->
     <div
       v-if="message.role === 'assistant'"
-      class="flex-shrink-0 w-8 h-8 mr-3 rounded-full bg-accent flex items-center justify-center text-white font-bold text-sm"
+      class="hidden md:flex flex-shrink-0 w-8 h-8 mr-3 rounded-full bg-accent items-center justify-center text-white font-bold text-sm"
     >
       AI
     </div>
 
-    <div class="flex flex-col max-w-[75%]">
+    <div class="flex flex-col max-w-[95%] md:max-w-[85%] lg:max-w-[75%]">
       <div
         :class="[
           'rounded-2xl px-5 py-3',
