@@ -1,6 +1,6 @@
 """Models package"""
 
-from .database import Client, Session, Message, Source, TaxRuleConfig
+from .database import Client, Session, Message, LawSource, KnowledgeSource, TaxRuleConfig
 from .api import (
     SessionCreate,
     SessionResponse,
@@ -19,7 +19,8 @@ __all__ = [
     "Client",
     "Session",
     "Message",
-    "Source",
+    "LawSource",
+    "KnowledgeSource",
     "TaxRuleConfig",
     # API models
     "SessionCreate",

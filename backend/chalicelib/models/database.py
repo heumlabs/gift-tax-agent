@@ -96,34 +96,86 @@ class Message(SQLModel, table=True):
     )
 
 
-class Source(SQLModel, table=True):
-    """RAG 시스템이 참조할 법령, 예규 등 원문 데이터"""
+class LawSource(SQLModel, table=True):
+    """법령과 예규 전문을 벡터 스토어로 관리"""
 
-    __tablename__ = "sources"
+    __tablename__ = "law_sources"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    document_name: str = Field(
-        max_length=255, nullable=False, description="원본 문서 제목"
+    chunk_hash: str = Field(
+        max_length=64,
+        unique=True,
+        nullable=False,
+        description="중복 방지를 위한 SHA-256 해시",
     )
-    article_info: Optional[str] = Field(
-        default=None, max_length=255, description="관련 조항 정보"
+    law_name: str = Field(nullable=False, description="법령 이름 (예: 상속세및증여세법)")
+    full_reference: str = Field(
+        nullable=False, description="전체 인용 경로 (예: 제1편 제2장 제53조)"
     )
-    url: Optional[str] = Field(default=None, max_length=2048, description="원문 링크")
-    content: str = Field(nullable=False, description="분할된 텍스트 원문")
+    content: str = Field(nullable=False, description="분할된 텍스트 원문 (500자 내외)")
     embedding: Optional[list] = Field(
         default=None,
         sa_column=Column(Vector(768), nullable=True),
-        description="content를 벡터로 변환한 임베딩 값",
+        description="content 임베딩",
     )
-    last_updated_at: datetime = Field(
+    source_url: Optional[str] = Field(
+        default=None, max_length=2048, description="법제처 등 원문 링크"
+    )
+    source_file: Optional[str] = Field(
+        default=None, max_length=512, description="원본 텍스트 파일 경로"
+    )
+    created_at: datetime = Field(
         default_factory=datetime.utcnow,
         nullable=False,
         sa_column_kwargs={"server_default": text("now()")},
     )
 
     __table_args__ = (
-        Index("idx_sources_document", "document_name"),
-        Index("idx_sources_embedding", "embedding", postgresql_using="ivfflat"),
+        Index("idx_law_sources_law_ref", "law_name", "full_reference"),
+        Index("idx_law_sources_embedding", "embedding", postgresql_using="hnsw"),
+    )
+
+
+class KnowledgeSource(SQLModel, table=True):
+    """법령 외 Q&A, 사례집 등 보조 지식을 저장"""
+
+    __tablename__ = "knowledge_sources"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    chunk_hash: str = Field(
+        max_length=64,
+        unique=True,
+        nullable=False,
+        description="중복 방지를 위한 SHA-256 해시",
+    )
+    source_type: str = Field(
+        max_length=50, nullable=False, description="자료 유형 (qna, news, case_study)"
+    )
+    title: Optional[str] = Field(default=None, description="자료 제목 또는 질문")
+    content: str = Field(nullable=False, description="분할된 텍스트 원문")
+    embedding: Optional[list] = Field(
+        default=None,
+        sa_column=Column(Vector(768), nullable=True),
+        description="content 임베딩",
+    )
+    ks_metadata: Optional[dict] = Field(
+        default=None,
+        sa_column=Column("metadata", JSONB, nullable=True),
+        description="출처별 부가 정보 (태그, 작성일 등)",
+    )
+    source_url: Optional[str] = Field(
+        default=None, max_length=2048, description="원문 링크"
+    )
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        nullable=False,
+        sa_column_kwargs={"server_default": text("now()")},
+    )
+
+    __table_args__ = (
+        Index("idx_knowledge_sources_type", "source_type"),
+        Index("idx_knowledge_sources_embedding", "embedding", postgresql_using="hnsw"),
+        Index("idx_knowledge_sources_metadata", "metadata", postgresql_using="gin"),
     )
 
 
