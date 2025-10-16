@@ -2,7 +2,7 @@ from logging.config import fileConfig
 import sys
 from pathlib import Path
 
-from sqlalchemy import engine_from_config, pool, text
+from sqlalchemy import create_engine, pool, text
 from sqlalchemy.dialects import postgresql
 from alembic import context
 
@@ -21,8 +21,8 @@ from pgvector.sqlalchemy import Vector
 # access to the values within the .ini file in use.
 config = context.config
 
-# DATABASE_URL을 config.py에서 가져와서 설정
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# Note: DATABASE_URL은 settings에서 직접 사용하므로 config에 설정하지 않음
+# (ConfigParser의 % interpolation 문제 회피)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -94,7 +94,8 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    # settings에서 직접 DATABASE_URL 가져오기 (% escape 불필요)
+    url = settings.database_url
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -116,9 +117,10 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    # settings에서 직접 DATABASE_URL 가져와서 엔진 생성
+    # ConfigParser의 % interpolation 문제 회피
+    connectable = create_engine(
+        settings.database_url,
         poolclass=pool.NullPool,
     )
 
