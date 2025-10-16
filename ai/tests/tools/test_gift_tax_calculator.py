@@ -17,7 +17,7 @@ class TestGiftTaxCalculator:
         # Given
         input_data = GiftTaxSimpleInput(
             gift_date=date(2025, 10, 15),
-            donor_relationship="직계비속",  # 부모→자녀 = 직계비속
+            donor_relationship="직계존속",  # 부모→자녀 (자녀 입장에서 부모는 직계존속)
             gift_property_value=100_000_000,
             is_generation_skipping=False,
             is_minor_recipient=False,
@@ -63,7 +63,7 @@ class TestGiftTaxCalculator:
         # Given
         input_data = GiftTaxSimpleInput(
             gift_date=date(2025, 10, 15),
-            donor_relationship="직계비속",  # 조부모→손자 = 직계비속
+            donor_relationship="직계존속",  # 조부모→손자 (손자 입장에서 조부모는 직계존속)
             gift_property_value=200_000_000,
             is_generation_skipping=True,
             is_minor_recipient=True,
@@ -87,7 +87,7 @@ class TestGiftTaxCalculator:
         # Given
         input_data = GiftTaxSimpleInput(
             gift_date=date(2025, 10, 15),
-            donor_relationship="직계비속",  # 부모→자녀 = 직계비속
+            donor_relationship="직계존속",  # 부모→자녀 (자녀 입장에서 부모는 직계존속)
             gift_property_value=500_000_000,
             secured_debt=200_000_000,
         )
@@ -108,7 +108,7 @@ class TestGiftTaxCalculator:
         # Given
         input_data = GiftTaxSimpleInput(
             gift_date=date(2025, 10, 15),
-            donor_relationship="직계비속",  # 부모→자녀 = 직계비속
+            donor_relationship="직계존속",  # 부모→자녀 (자녀 입장에서 부모는 직계존속)
             gift_property_value=300_000_000,
             is_non_resident=True,  # 비거주자
         )

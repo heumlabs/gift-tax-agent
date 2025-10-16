@@ -31,7 +31,8 @@ def calculate_gift_tax_simple(
 
     Args:
         gift_date: 증여일자
-        donor_relationship: 증여자 관계 (배우자/직계존속/직계비속/기타친족)
+        donor_relationship: 증여자 관계 (수증자 기준, 배우자/직계존속/직계비속/기타친족)
+                           예: 부모→자녀 증여 시 "직계존속" (자녀 입장에서 부모)
         gift_property_value: 증여받은 재산가액
         is_generation_skipping: 세대생략 증여 여부
         is_minor_recipient: 수증자 미성년자 여부
@@ -166,7 +167,7 @@ def get_base_deduction(donor_relationship: str, is_minor: bool, is_non_resident:
     기본 공제액 계산.
 
     Args:
-        donor_relationship: 증여자 관계 (증여자 기준, 예: 부모→자녀 = 직계비속)
+        donor_relationship: 증여자 관계 (수증자 기준, 예: 부모→자녀 = 직계존속)
         is_minor: 미성년자 여부
         is_non_resident: 비거주자 여부
 
@@ -177,8 +178,8 @@ def get_base_deduction(donor_relationship: str, is_minor: bool, is_non_resident:
     if is_non_resident:
         return 0
 
-    # 미성년자 특례: 부모→미성년자녀 (증여자=직계비속)
-    if is_minor and donor_relationship == "직계비속":
+    # 미성년자 특례: 직계존속으로부터 미성년자 증여 (부모→미성년자녀)
+    if is_minor and donor_relationship == "직계존속":
         return MINOR_DEDUCTION  # 2천만원
     return GIFT_DEDUCTION_BASE.get(donor_relationship, 10_000_000)
 

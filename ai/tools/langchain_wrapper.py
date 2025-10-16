@@ -44,7 +44,8 @@ def calculate_gift_tax_simple(
 
     Args:
         gift_date: 증여일자
-        donor_relationship: 증여자 관계 (배우자/직계존속/직계비속/기타친족)
+        donor_relationship: 증여자 관계 (수증자 기준, 배우자/직계존속/직계비속/기타친족)
+                           예: 부모→자녀 증여 시 "직계존속"
         gift_property_value: 증여받은 재산가액 (원)
         is_generation_skipping: 세대생략 증여 여부
         is_minor_recipient: 수증자 미성년자 여부

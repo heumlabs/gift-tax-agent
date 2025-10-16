@@ -49,7 +49,7 @@
 | 변수명 | 타입 | 필수 | 기본값 | 설명 |
 |--------|------|------|--------|------|
 | `gift_date` | `date` | ✅ | - | 증여일자 |
-| `donor_relationship` | `enum` | ✅ | - | 증여자와의 관계 (증여자 기준, 예: 부모→자녀=직계비속) |
+| `donor_relationship` | `enum` | ✅ | - | 증여자와의 관계 (수증자 기준, 예: 부모→자녀=직계존속) |
 | `gift_property_value` | `int` | ✅ | - | 증여받은 재산가액 (원) |
 | `is_generation_skipping` | `bool` | ✅ | `false` | 세대생략 증여 여부 |
 | `is_minor_recipient` | `bool` | ✅ | `false` | 수증자 미성년자 여부 |
@@ -63,24 +63,24 @@
 ```python
 DonorRelationship = Literal[
     "배우자",      # spouse (배우자→배우자)
-    "직계존속",    # lineal_ascendant (자녀→부모)
-    "직계비속",    # lineal_descendant (부모→자녀, 조부모→손자)
+    "직계존속",    # lineal_ascendant (부모→자녀, 조부모→손자)
+    "직계비속",    # lineal_descendant (자녀→부모)
     "기타친족",    # other_relative
 ]
 ```
 
-**중요**: `donor_relationship`은 **증여자 입장에서 본 수증자와의 관계**를 의미합니다.
+**중요**: `donor_relationship`은 **수증자 입장에서 본 증여자와의 관계**를 의미합니다.
 
 **국세청 홈택스 양식 기준:**
-- 증여자와의 관계 선택 → "증여자 기준"으로 입력
+- "증여자와의 관계" 선택 → 수증자(세금 내는 사람) 기준으로 입력
 - 예시: 아버지가 아들에게 증여
-  - 국세청 양식: "자" 선택
-  - 입력값: `donor_relationship="직계비속"`
+  - 국세청 양식: "부" 선택 (아들 입장에서 아버지)
+  - 입력값: `donor_relationship="직계존속"`
 
 **추가 예시:**
-- 아버지 → 아들: `"직계비속"` (자)
-- 아들 → 아버지: `"직계존속"` (부)
-- 조부모 → 손자: `"직계비속"` (손)
+- 아버지 → 아들: `"직계존속"` (부) - 아들 입장에서 아버지
+- 아들 → 아버지: `"직계비속"` (자) - 아버지 입장에서 아들
+- 조부모 → 손자: `"직계존속"` (조) - 손자 입장에서 조부모
 - 배우자 → 배우자: `"배우자"`
 
 ### 3.3. 변수 검증 규칙
@@ -135,7 +135,7 @@ class GiftTaxSimpleInput(BaseModel):
 ```python
 GIFT_DEDUCTION_BASE = {
     "배우자": 600_000_000,        # 6억원
-    "직계존속": 50_000_000,       # 5천만원 (부모→자녀)
+    "직계존속": 50_000_000,       # 5천만원 (부모→자녀, 조부모→손자)
     "직계비속": 50_000_000,       # 5천만원 (자녀→부모)
     "기타친족": 10_000_000,       # 1천만원
 }
@@ -145,7 +145,7 @@ GIFT_DEDUCTION_BASE = {
 
 ```python
 MINOR_DEDUCTION = 20_000_000    # 2천만원
-# 미성년자가 직계존속으로부터 증여받는 경우 5천만원 대신 적용
+# 직계존속(부모)으로부터 미성년자가 증여받는 경우 5천만원 대신 2천만원 적용
 ```
 
 ### 4.3. 혼인/출산 공제
@@ -422,7 +422,7 @@ def generate_warnings(gift_date: date, is_generation_skipping: bool, past_gifts_
 ```python
 {
     "gift_date": date(2025, 10, 15),
-    "donor_relationship": "직계비속",  # 부모→자녀 (증여자 기준)
+    "donor_relationship": "직계존속",  # 부모→자녀 (자녀 입장에서 부모는 직계존속)
     "is_generation_skipping": False,
     "is_minor_recipient": False,
     "is_non_resident": False,
@@ -444,7 +444,7 @@ def generate_warnings(gift_date: date, is_generation_skipping: bool, past_gifts_
 
 **계산 근거**:
 - 증여재산가액: 1억원
-- 기본공제: 5천만원 (직계비속)
+- 기본공제: 5천만원 (직계존속)
 - 과세표준: 5천만원
 - 산출세액: 5천만원 × 10% = 500만원
 
@@ -486,7 +486,7 @@ def generate_warnings(gift_date: date, is_generation_skipping: bool, past_gifts_
 ```python
 {
     "gift_date": date(2025, 10, 15),
-    "donor_relationship": "직계비속",  # 조부모→손자 (증여자 기준)
+    "donor_relationship": "직계존속",  # 조부모→손자 (손자 입장에서 조부모는 직계존속)
     "is_generation_skipping": True,
     "is_minor_recipient": True,
     "gift_property_value": 200_000_000,
@@ -507,7 +507,7 @@ def generate_warnings(gift_date: date, is_generation_skipping: bool, past_gifts_
 
 **계산 근거**:
 - 증여재산가액: 2억원
-- 기본공제: 2천만원 (미성년자 특례, 직계비속)
+- 기본공제: 2천만원 (미성년자 특례, 직계존속)
 - 과세표준: 1.8억원
 - 산출세액: 1.8억 × 20% - 1천만원 = 2,600만원
 - 할증세액: 2,600만원 × 30% = 780만원
@@ -521,7 +521,7 @@ def generate_warnings(gift_date: date, is_generation_skipping: bool, past_gifts_
 ```python
 {
     "gift_date": date(2025, 10, 15),
-    "donor_relationship": "직계비속",  # 부모→자녀 (증여자 기준)
+    "donor_relationship": "직계존속",  # 부모→자녀 (자녀 입장에서 부모는 직계존속)
     "gift_property_value": 500_000_000,
     "secured_debt": 200_000_000,
 }
@@ -541,7 +541,7 @@ def generate_warnings(gift_date: date, is_generation_skipping: bool, past_gifts_
 
 **계산 근거**:
 - 증여재산가액: 5억 - 2억 = 3억원
-- 기본공제: 5천만원 (직계비속)
+- 기본공제: 5천만원 (직계존속)
 - 과세표준: 2.5억원
 - 산출세액: 2.5억 × 20% - 1천만원 = 4,000만원
 

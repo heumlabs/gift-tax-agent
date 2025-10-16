@@ -14,7 +14,7 @@ class GiftTaxSimpleInput(BaseModel):
     # Tier 1: 기본 정보
     gift_date: date = Field(..., description="증여일자")
     donor_relationship: Literal["배우자", "직계존속", "직계비속", "기타친족"] = Field(
-        ..., description="증여자와의 관계 (증여자 기준, 예: 부모→자녀=직계비속)"
+        ..., description="증여자와의 관계 (수증자 기준, 예: 부모→자녀=직계존속)"
     )
     gift_property_value: int = Field(..., gt=0, description="증여받은 재산가액 (원)")
 

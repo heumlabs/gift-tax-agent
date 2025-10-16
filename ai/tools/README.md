@@ -27,7 +27,7 @@ from ai.tools.gift_tax.calculator import calculate_gift_tax_simple
 
 result = calculate_gift_tax_simple(
     gift_date=date(2025, 10, 15),
-    donor_relationship="직계비속",  # 부모→자녀 (증여자 기준)
+    donor_relationship="직계존속",  # 부모→자녀 (자녀 입장에서 부모는 직계존속)
     gift_property_value=100_000_000,
 )
 

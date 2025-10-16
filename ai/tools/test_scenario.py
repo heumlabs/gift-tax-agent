@@ -135,7 +135,7 @@ if __name__ == "__main__":
     elif scenario_choice == "3":
         # 부모→성인자녀 3억 (비거주자)
         gift_date = today
-        donor_relationship = "직계비속"
+        donor_relationship = "직계존속"  # 부모→자녀 (자녀 입장에서 부모는 직계존속)
         gift_property_value = 300_000_000
         is_gen_skip = False
         is_minor = False
@@ -195,7 +195,7 @@ if __name__ == "__main__":
     elif scenario_choice == "8":
         # 조부모→손자 2억 (세대생략, 거주자)
         gift_date = today
-        donor_relationship = "직계비속"
+        donor_relationship = "직계존속"  # 조부모→손자 (손자 입장에서 조부모는 직계존속)
         gift_property_value = 200_000_000
         is_gen_skip = True
         is_minor = False
@@ -207,7 +207,7 @@ if __name__ == "__main__":
     elif scenario_choice == "9":
         # 조부모→손자 2억 (세대생략, 비거주자)
         gift_date = today
-        donor_relationship = "직계비속"
+        donor_relationship = "직계존속"  # 조부모→손자 (손자 입장에서 조부모는 직계존속)
         gift_property_value = 200_000_000
         is_gen_skip = True
         is_minor = False
@@ -219,7 +219,7 @@ if __name__ == "__main__":
     else:
         # 기본: 부모→성인자녀 3억
         gift_date = today
-        donor_relationship = "직계비속"
+        donor_relationship = "직계존속"  # 부모→자녀 (자녀 입장에서 부모는 직계존속)
         gift_property_value = 300_000_000
         is_gen_skip = False
         is_minor = False
