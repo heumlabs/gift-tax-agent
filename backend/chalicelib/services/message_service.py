@@ -2,20 +2,19 @@
 메시지 관리 서비스
 
 비즈니스 로직을 담당하며, Repository를 사용하여 데이터 접근
-현재는 Mock 데이터를 반환
 """
 
 import sys
 from pathlib import Path
 from typing import Optional
-from datetime import datetime
-from uuid import uuid4
 
 from chalicelib.models.api import (
     MessageResponse,
     MessageListResponse,
     AssistantMessageResponse,
 )
+from chalicelib.db.connection import get_db_session
+from chalicelib.db.repositories import SessionRepository, MessageRepository
 
 # ai 모듈을 import하기 위해 프로젝트 루트를 sys.path에 추가
 ROOT_DIR = Path(__file__).resolve().parents[3]  # backend/chalicelib/services -> 3 levels up
@@ -29,7 +28,7 @@ class MessageService:
     """메시지 관리 서비스"""
 
     def __init__(self):
-        """Mock 서비스이므로 DB 의존성 없음"""
+        """서비스 초기화"""
         pass
 
     def get_messages(
@@ -51,28 +50,33 @@ class MessageService:
         Returns:
             MessageListResponse: 메시지 목록
         """
-        # Mock 데이터 반환
-        mock_messages = [
-            MessageResponse(
-                id=str(uuid4()),
-                role="user",
-                content="안녕하세요?",
-                metadata=None,
-                createdAt=datetime.utcnow(),
-            ),
-            MessageResponse(
-                id=str(uuid4()),
-                role="assistant",
-                content="네, 안녕하세요! 무엇을 도와드릴까요?",
-                metadata={"citations": []},
-                createdAt=datetime.utcnow(),
-            ),
-        ]
+        with get_db_session() as db:
+            # 세션 권한 검증
+            session_repo = SessionRepository(db)
+            session = session_repo.find_by_id(session_id, client_id_hash)
+            if not session:
+                return MessageListResponse(messages=[], nextCursor=None)
 
-        return MessageListResponse(
-            messages=mock_messages,
-            nextCursor=None,  # Mock에서는 다음 페이지 없음
-        )
+            # 메시지 목록 조회
+            message_repo = MessageRepository(db)
+            messages, next_cursor = message_repo.find_all_by_session(
+                session_id, limit, cursor
+            )
+
+            message_responses = [
+                MessageResponse(
+                    id=message.id,
+                    role=message.role,
+                    content=message.content,
+                    metadata=message.msg_metadata,
+                    createdAt=message.created_at,
+                )
+                for message in messages
+            ]
+
+            return MessageListResponse(
+                messages=message_responses, nextCursor=next_cursor
+            )
 
     def create_message_and_get_response(
         self, session_id: str, client_id_hash: str, content: str
@@ -88,15 +92,37 @@ class MessageService:
         Returns:
             AssistantMessageResponse: AI 응답 메시지
         """
-        # AI 모듈을 통해 실제 응답 생성
-        ai_response = generate_assistant_message(content=content)
+        with get_db_session() as db:
+            # 세션 권한 검증
+            session_repo = SessionRepository(db)
+            session = session_repo.find_by_id(session_id, client_id_hash)
+            if not session:
+                raise ValueError(f"Session {session_id} not found or access denied")
 
-        assistant_message = MessageResponse(
-            id=str(uuid4()),
-            role="assistant",
-            content=ai_response["content"],
-            metadata=ai_response.get("metadata"),
-            createdAt=datetime.utcnow(),
-        )
+            message_repo = MessageRepository(db)
 
-        return AssistantMessageResponse(assistantMessage=assistant_message)
+            # 1. 사용자 메시지 저장
+            user_message = message_repo.create(
+                session_id=session_id, role="user", content=content, metadata=None
+            )
+
+            # 2. AI 응답 생성
+            ai_response = generate_assistant_message(content=content)
+
+            # 3. AI 응답 메시지 저장
+            assistant_message_db = message_repo.create(
+                session_id=session_id,
+                role="assistant",
+                content=ai_response["content"],
+                metadata=ai_response.get("metadata"),
+            )
+
+            assistant_message = MessageResponse(
+                id=assistant_message_db.id,
+                role=assistant_message_db.role,
+                content=assistant_message_db.content,
+                metadata=assistant_message_db.msg_metadata,
+                createdAt=assistant_message_db.created_at,
+            )
+
+            return AssistantMessageResponse(assistantMessage=assistant_message)
