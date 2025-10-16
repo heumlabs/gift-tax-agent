@@ -16,7 +16,7 @@
 - ✅ 입력 변수 정의 및 검증 규칙
 - ✅ 공제액, 세율, 할증 규칙
 - ✅ 계산 결과 출력 형식
-- ✅ 테스트 케이스 5개
+- ✅ 테스트 케이스 4개
 - ❌ Clarifying 질문 전략 (별도 문서: `ai-logic/04-clarifying-strategy.md`)
 - ❌ LangGraph 통합 (Phase 2)
 
@@ -39,38 +39,39 @@
 | **비거주자** | 거주자가 아닌 자 |
 | **미성년자** | 증여일 현재 만 19세 미만인 자 |
 | **세대생략 증여** | 조부모가 손자에게 증여하는 경우 (단, 수증자의 부모가 사망한 경우 제외) |
-| **사전증여재산** | 증여일 전 10년 이내 동일인으로부터 증여받은 재산 |
 
 ---
 
 ## 3. 입력 변수 정의
 
-### 3.1. 변수 목록 (총 11개)
+### 3.1. 변수 목록 (총 9개)
 
 | 변수명 | 타입 | 필수 | 기본값 | 설명 |
 |--------|------|------|--------|------|
 | `gift_date` | `date` | ✅ | - | 증여일자 |
-| `donor_relationship` | `enum` | ✅ | - | 증여자와의 관계 (배우자/직계존속/직계비속/기타친족) |
+| `donor_relationship` | `enum` | ✅ | - | 증여자와의 관계 (증여자 기준, 예: 부모→자녀=직계비속) |
 | `gift_property_value` | `int` | ✅ | - | 증여받은 재산가액 (원) |
 | `is_generation_skipping` | `bool` | ✅ | `false` | 세대생략 증여 여부 |
 | `is_minor_recipient` | `bool` | ✅ | `false` | 수증자 미성년자 여부 |
 | `is_non_resident` | `bool` | ✅ | `false` | 수증자 비거주자 여부 |
-| `past_gifts_value` | `int` | ✅ | `0` | 10년 이내 동일인 증여재산 합계 |
 | `marriage_deduction_amount` | `int` | 옵션 | `0` | 혼인공제액 (최대 1억) |
 | `childbirth_deduction_amount` | `int` | 옵션 | `0` | 출산공제액 (최대 1억) |
 | `secured_debt` | `int` | 옵션 | `0` | 담보채무액 |
-| `past_tax_paid` | `int` | 옵션 | `0` | 사전 증여세액 |
 
 ### 3.2. donor_relationship 허용값
 
 ```python
 DonorRelationship = Literal[
-    "배우자",      # spouse
-    "직계존속",    # lineal_ascendant (부모, 조부모)
-    "직계비속",    # lineal_descendant (자녀, 손자)
+    "배우자",      # spouse (배우자→배우자)
+    "직계존속",    # lineal_ascendant (자녀→부모)
+    "직계비속",    # lineal_descendant (부모→자녀, 조부모→손자)
     "기타친족",    # other_relative
 ]
 ```
+
+**주의**: 증여자 기준입니다.
+- 아버지가 아들에게 증여 → 직계비속 (자)
+- 아들이 아버지에게 증여 → 직계존속 (부)
 
 ### 3.3. 변수 검증 규칙
 
@@ -92,12 +93,10 @@ class GiftTaxSimpleInput(BaseModel):
     is_minor_recipient: bool = Field(default=False, description="수증자 미성년자 여부")
     is_non_resident: bool = Field(default=False, description="수증자 비거주자 여부")
 
-    # Tier 3: 공제 및 합산
-    past_gifts_value: int = Field(default=0, ge=0, description="10년 이내 동일인 증여재산 합계")
+    # Tier 3: 공제 및 채무
     marriage_deduction_amount: int = Field(default=0, ge=0, le=100_000_000, description="혼인공제액")
     childbirth_deduction_amount: int = Field(default=0, ge=0, le=100_000_000, description="출산공제액")
     secured_debt: int = Field(default=0, ge=0, description="담보채무액")
-    past_tax_paid: int = Field(default=0, ge=0, description="사전 증여세액")
 
     @field_validator('secured_debt')
     @classmethod
@@ -120,7 +119,7 @@ class GiftTaxSimpleInput(BaseModel):
 
 ## 4. 공제액 및 세율 규칙
 
-### 4.1. 기본 공제 (10년간 합산)
+### 4.1. 기본 공제
 
 ```python
 GIFT_DEDUCTION_BASE = {
@@ -179,13 +178,13 @@ GENERATION_SKIPPING_SURTAX_RATE = 0.30  # 30% 할증
   ↓
 ② 증여재산공제 = 기본공제 + 혼인공제 + 출산공제
   ↓
-③ 과세표준 = (증여재산가액 + 사전증여재산가액) - 증여재산공제
+③ 과세표준 = 증여재산가액 - 증여재산공제
   ↓
 ④ 산출세액 = 과세표준 × 세율 - 누진공제
   ↓
 ⑤ 세대생략 할증세액 = 산출세액 × 30% (해당 시)
   ↓
-⑥ 증여세액 = (산출세액 + 할증세액) - 사전증여세액
+⑥ 증여세액 = 산출세액 + 할증세액
   ↓
 [출력: GiftTaxSimpleOutput]
 ```
@@ -506,40 +505,7 @@ def generate_warnings(gift_date: date, is_generation_skipping: bool, past_gifts_
 
 ---
 
-### Case 4: 10년 합산 케이스
-
-**입력**:
-```python
-{
-    "gift_date": date(2025, 10, 15),
-    "donor_relationship": "직계존속",
-    "gift_property_value": 100_000_000,
-    "past_gifts_value": 50_000_000,
-    "past_tax_paid": 0,
-}
-```
-
-**예상 결과**:
-```python
-{
-    "gift_value": 100_000_000,
-    "total_deduction": 50_000_000,
-    "taxable_base": 100_000_000,
-    "calculated_tax": 10_000_000,
-    "surtax": 0,
-    "final_tax": 10_000_000,
-}
-```
-
-**계산 근거**:
-- 증여재산가액: 1억원
-- 사전증여재산: 5천만원 (10년 내)
-- 과세표준: (1억 + 5천만원) - 5천만원 = 1억원
-- 산출세액: 1억 × 10% = 1,000만원
-
----
-
-### Case 5: 부담부 증여 (부동산 5억, 대출 2억)
+### Case 4: 부담부 증여 (부동산 5억, 대출 2억)
 
 **입력**:
 ```python
@@ -577,7 +543,7 @@ def generate_warnings(gift_date: date, is_generation_skipping: bool, past_gifts_
 - [ ] `GiftTaxSimpleInput` Pydantic 모델 구현
 - [ ] `calculate_gift_tax_simple()` 함수 구현
 - [ ] 헬퍼 함수 구현 (`get_base_deduction`, `apply_tax_rate`, `generate_warnings`)
-- [ ] 테스트 케이스 5개 작성 및 검증 (pytest)
+- [ ] 테스트 케이스 4개 작성 및 검증 (pytest)
 - [ ] Agent Tool 인터페이스 구현 (LangChain Tool)
 
 ### Phase 2 (별도 Issue)
