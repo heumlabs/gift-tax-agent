@@ -20,7 +20,7 @@ export const useChatStore = defineStore('chat', () => {
   const currentSessionId = ref<string | null>(null);
   // 메시지 추가 순서를 추적하기 위한 시퀀스 번호
   let messageSequence = 0;
-  const messageOrderMap = new Map<string, number>();
+  const messageOrderMap = ref(new Map<string, number>());
 
   // ============================================================================
   // Getters
@@ -37,8 +37,8 @@ export const useChatStore = defineStore('chat', () => {
       }
       
       // 시간이 같으면 추가된 순서대로 정렬 (클라이언트에서 생성한 메시지 처리용)
-      const orderA = messageOrderMap.get(a.id) || 0;
-      const orderB = messageOrderMap.get(b.id) || 0;
+      const orderA = messageOrderMap.value.get(a.id) || 0;
+      const orderB = messageOrderMap.value.get(b.id) || 0;
       return orderA - orderB;
     });
   });
@@ -60,11 +60,12 @@ export const useChatStore = defineStore('chat', () => {
       messages.value = response.messages;
       
       // 서버에서 받은 메시지들의 순서 정보 초기화
-      messageOrderMap.clear();
+      const newOrderMap = new Map<string, number>();
       messageSequence = 0;
       response.messages.forEach((msg) => {
-        messageOrderMap.set(msg.id, messageSequence++);
+        newOrderMap.set(msg.id, messageSequence++);
       });
+      messageOrderMap.value = newOrderMap;
     } catch (e) {
       error.value = '메시지를 불러오는데 실패했습니다.';
       console.error('Failed to fetch messages:', e);
@@ -92,7 +93,9 @@ export const useChatStore = defineStore('chat', () => {
       content,
       createdAt: new Date().toISOString(),
     };
-    messageOrderMap.set(tempUserMessage.id, messageSequence++);
+    const newOrderMap1 = new Map(messageOrderMap.value);
+    newOrderMap1.set(tempUserMessage.id, messageSequence++);
+    messageOrderMap.value = newOrderMap1;
     messages.value.push(tempUserMessage);
 
     try {
@@ -102,7 +105,9 @@ export const useChatStore = defineStore('chat', () => {
       messages.value = messages.value.filter(
         (m) => m.id !== tempUserMessage.id
       );
-      messageOrderMap.delete(tempUserMessage.id);
+      const newOrderMap2 = new Map(messageOrderMap.value);
+      newOrderMap2.delete(tempUserMessage.id);
+      messageOrderMap.value = newOrderMap2;
 
       // 사용자 메시지와 AI 응답을 모두 추가
       // 서버 응답의 createdAt을 사용하되, 추가 순서도 기록
@@ -116,8 +121,10 @@ export const useChatStore = defineStore('chat', () => {
         ).toISOString(),
       };
       
-      messageOrderMap.set(userMessage.id, messageSequence++);
-      messageOrderMap.set(response.assistantMessage.id, messageSequence++);
+      const newOrderMap3 = new Map(messageOrderMap.value);
+      newOrderMap3.set(userMessage.id, messageSequence++);
+      newOrderMap3.set(response.assistantMessage.id, messageSequence++);
+      messageOrderMap.value = newOrderMap3;
       
       messages.value.push(userMessage);
       messages.value.push(response.assistantMessage);
@@ -128,7 +135,9 @@ export const useChatStore = defineStore('chat', () => {
       messages.value = messages.value.filter(
         (m) => m.id !== tempUserMessage.id
       );
-      messageOrderMap.delete(tempUserMessage.id);
+      const newOrderMap4 = new Map(messageOrderMap.value);
+      newOrderMap4.delete(tempUserMessage.id);
+      messageOrderMap.value = newOrderMap4;
       error.value = '메시지 전송에 실패했습니다.';
       console.error('Failed to send message:', e);
       return false;
@@ -143,7 +152,7 @@ export const useChatStore = defineStore('chat', () => {
   function clearMessages() {
     messages.value = [];
     currentSessionId.value = null;
-    messageOrderMap.clear();
+    messageOrderMap.value = new Map<string, number>();
     messageSequence = 0;
   }
 
