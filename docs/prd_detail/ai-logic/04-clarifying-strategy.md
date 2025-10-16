@@ -67,10 +67,12 @@ if donor_relationship in ["직계존속", "직계비속"]:
     ask_childbirth_deduction = True
 
 # 채무 질문 조건
-# 부동산, 건물 등 담보 가능 자산인 경우에만
-if asset_type in ["부동산", "건물", "상업용건물"]:
-    ask_secured_debt = True
+# 대화 맥락에서 부동산/주택 언급 시 항상 질문
+# Phase 2에서 LLM이 대화 내용 분석하여 결정
+ask_secured_debt = True  # 간편계산기는 항상 질문 가능
 ```
+
+> **참고**: `asset_type`은 간편계산기 범위를 벗어나므로 Phase 1에서 제외되었습니다. Phase 2 LangGraph 구현 시 대화 맥락 분석으로 조건부 질문을 결정할 예정입니다.
 
 ## 3. Clarifying 질문 템플릿
 
