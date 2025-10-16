@@ -3,3 +3,5 @@ __pycache__/
 .env
 .history/
 node_modules/
+.python-version
+package-lock.json
