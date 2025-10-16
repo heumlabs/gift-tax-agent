@@ -18,16 +18,29 @@ export const useChatStore = defineStore('chat', () => {
   const isLoadingResponse = ref(false);
   const error = ref<string | null>(null);
   const currentSessionId = ref<string | null>(null);
+  // 메시지 추가 순서를 추적하기 위한 시퀀스 번호
+  let messageSequence = 0;
+  const messageOrderMap = ref(new Map<string, number>());
 
   // ============================================================================
   // Getters
   // ============================================================================
 
   const sortedMessages = computed(() => {
-    return [...messages.value].sort(
-      (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    );
+    return [...messages.value].sort((a, b) => {
+      const timeA = new Date(a.createdAt).getTime();
+      const timeB = new Date(b.createdAt).getTime();
+      
+      // 시간이 다르면 시간순으로 정렬
+      if (timeA !== timeB) {
+        return timeA - timeB;
+      }
+      
+      // 시간이 같으면 추가된 순서대로 정렬 (클라이언트에서 생성한 메시지 처리용)
+      const orderA = messageOrderMap.value.get(a.id) || 0;
+      const orderB = messageOrderMap.value.get(b.id) || 0;
+      return orderA - orderB;
+    });
   });
 
   // ============================================================================
@@ -45,6 +58,14 @@ export const useChatStore = defineStore('chat', () => {
     try {
       const response = await messageApi.getMessages(sessionId);
       messages.value = response.messages;
+      
+      // 서버에서 받은 메시지들의 순서 정보 초기화
+      const newOrderMap = new Map<string, number>();
+      messageSequence = 0;
+      response.messages.forEach((msg) => {
+        newOrderMap.set(msg.id, messageSequence++);
+      });
+      messageOrderMap.value = newOrderMap;
     } catch (e) {
       error.value = '메시지를 불러오는데 실패했습니다.';
       console.error('Failed to fetch messages:', e);
@@ -72,22 +93,39 @@ export const useChatStore = defineStore('chat', () => {
       content,
       createdAt: new Date().toISOString(),
     };
+    const newOrderMap1 = new Map(messageOrderMap.value);
+    newOrderMap1.set(tempUserMessage.id, messageSequence++);
+    messageOrderMap.value = newOrderMap1;
     messages.value.push(tempUserMessage);
 
     try {
       const response = await messageApi.sendMessage(sessionId, content);
 
-      // 임시 메시지 제거 후 실제 응답으로 교체
+      // 임시 메시지 제거
       messages.value = messages.value.filter(
         (m) => m.id !== tempUserMessage.id
       );
+      const newOrderMap2 = new Map(messageOrderMap.value);
+      newOrderMap2.delete(tempUserMessage.id);
+      messageOrderMap.value = newOrderMap2;
 
       // 사용자 메시지와 AI 응답을 모두 추가
-      // (서버가 사용자 메시지를 반환하지 않으므로 클라이언트에서 추가)
+      // 서버 응답의 createdAt을 사용하되, 추가 순서도 기록
       const userMessage: Message = {
-        ...tempUserMessage,
         id: `user-${Date.now()}`,
+        role: 'user',
+        content,
+        // 서버 응답보다 살짝 이전 시간으로 설정 (사용자 메시지가 먼저 표시되도록)
+        createdAt: new Date(
+          new Date(response.assistantMessage.createdAt).getTime() - 1000
+        ).toISOString(),
       };
+      
+      const newOrderMap3 = new Map(messageOrderMap.value);
+      newOrderMap3.set(userMessage.id, messageSequence++);
+      newOrderMap3.set(response.assistantMessage.id, messageSequence++);
+      messageOrderMap.value = newOrderMap3;
+      
       messages.value.push(userMessage);
       messages.value.push(response.assistantMessage);
 
@@ -97,6 +135,9 @@ export const useChatStore = defineStore('chat', () => {
       messages.value = messages.value.filter(
         (m) => m.id !== tempUserMessage.id
       );
+      const newOrderMap4 = new Map(messageOrderMap.value);
+      newOrderMap4.delete(tempUserMessage.id);
+      messageOrderMap.value = newOrderMap4;
       error.value = '메시지 전송에 실패했습니다.';
       console.error('Failed to send message:', e);
       return false;
@@ -111,6 +152,8 @@ export const useChatStore = defineStore('chat', () => {
   function clearMessages() {
     messages.value = [];
     currentSessionId.value = null;
+    messageOrderMap.value = new Map<string, number>();
+    messageSequence = 0;
   }
 
   return {

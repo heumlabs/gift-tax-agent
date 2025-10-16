@@ -2,21 +2,20 @@
 세션 관리 서비스
 
 비즈니스 로직을 담당하며, Repository를 사용하여 데이터 접근
-현재는 Mock 데이터를 반환
 """
 
-from typing import List, Optional, Tuple
-from datetime import datetime
-from uuid import uuid4
+from typing import Optional
 
 from chalicelib.models.api import SessionResponse, SessionListResponse
+from chalicelib.db.connection import get_db_session
+from chalicelib.db.repositories import ClientRepository, SessionRepository
 
 
 class SessionService:
     """세션 관리 서비스"""
 
     def __init__(self):
-        """Mock 서비스이므로 DB 의존성 없음"""
+        """서비스 초기화"""
         pass
 
     def create_session(self, client_id_hash: str) -> SessionResponse:
@@ -29,10 +28,18 @@ class SessionService:
         Returns:
             SessionResponse: 생성된 세션 정보
         """
-        # Mock 데이터 반환
-        return SessionResponse(
-            id=str(uuid4()), title="새로운 상담", createdAt=datetime.utcnow()
-        )
+        with get_db_session() as db:
+            # 클라이언트 존재 여부 확인 또는 생성
+            client_repo = ClientRepository(db)
+            client_repo.find_or_create(client_id_hash)
+
+            # 세션 생성
+            session_repo = SessionRepository(db)
+            session = session_repo.create(client_id_hash)
+
+            return SessionResponse(
+                id=session.id, title=session.title, createdAt=session.created_at
+            )
 
     def get_sessions(
         self, client_id_hash: str, limit: int = 20, cursor: Optional[str] = None
@@ -48,23 +55,27 @@ class SessionService:
         Returns:
             SessionListResponse: 세션 목록
         """
-        # Mock 데이터 반환
-        mock_sessions = [
-            SessionResponse(
-                id=str(uuid4()), title="자녀 증여세 관련", createdAt=datetime.utcnow()
-            ),
-            SessionResponse(
-                id=str(uuid4()), title="배우자 증여세 상담", createdAt=datetime.utcnow()
-            ),
-            SessionResponse(
-                id=str(uuid4()), title="부동산 증여 문의", createdAt=datetime.utcnow()
-            ),
-        ]
+        with get_db_session() as db:
+            # 클라이언트 존재 여부 확인 또는 생성
+            client_repo = ClientRepository(db)
+            client_repo.find_or_create(client_id_hash)
 
-        return SessionListResponse(
-            sessions=mock_sessions,
-            nextCursor=None,  # Mock에서는 다음 페이지 없음
-        )
+            # 세션 목록 조회
+            session_repo = SessionRepository(db)
+            sessions, next_cursor = session_repo.find_all_by_client(
+                client_id_hash, limit, cursor
+            )
+
+            session_responses = [
+                SessionResponse(
+                    id=session.id, title=session.title, createdAt=session.created_at
+                )
+                for session in sessions
+            ]
+
+            return SessionListResponse(
+                sessions=session_responses, nextCursor=next_cursor
+            )
 
     def update_session_title(
         self, session_id: str, client_id_hash: str, title: str
@@ -80,8 +91,15 @@ class SessionService:
         Returns:
             SessionResponse: 수정된 세션 정보 또는 None
         """
-        # Mock 데이터 반환
-        return SessionResponse(id=session_id, title=title, createdAt=datetime.utcnow())
+        with get_db_session() as db:
+            session_repo = SessionRepository(db)
+            session = session_repo.update_title(session_id, client_id_hash, title)
+
+            if session:
+                return SessionResponse(
+                    id=session.id, title=session.title, createdAt=session.created_at
+                )
+            return None
 
     def delete_session(self, session_id: str, client_id_hash: str) -> bool:
         """
@@ -94,5 +112,6 @@ class SessionService:
         Returns:
             bool: 삭제 성공 여부
         """
-        # Mock에서는 항상 성공
-        return True
+        with get_db_session() as db:
+            session_repo = SessionRepository(db)
+            return session_repo.delete(session_id, client_id_hash)

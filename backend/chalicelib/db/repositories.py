@@ -122,7 +122,7 @@ class MessageRepository:
     ) -> Message:
         """새 메시지 생성"""
         message = Message(
-            session_id=session_id, role=role, content=content, metadata=metadata
+            session_id=session_id, role=role, content=content, msg_metadata=metadata
         )
         self.db.add(message)
         self.db.commit()
