@@ -83,7 +83,7 @@ class TestGiftTaxCalculator:
         assert any("30% 할증" in w for w in result["warnings"])
 
     def test_case4_secured_debt_500m_property_200m_debt(self):
-        """Case 5: 부담부 증여 (부동산 5억, 대출 2억)."""
+        """Case 4: 부담부 증여 (부동산 5억, 대출 2억)."""
         # Given
         input_data = GiftTaxSimpleInput(
             gift_date=date(2025, 10, 15),
@@ -102,6 +102,47 @@ class TestGiftTaxCalculator:
         assert result["calculated_tax"] == 40_000_000  # 2.5억 × 20% - 1천만 = 4천만
         assert result["surtax"] == 0
         assert result["final_tax"] == 40_000_000
+
+    def test_case5_non_resident_300m(self):
+        """Case 5: 비거주자 (부모→자녀 3억, 공제 0원)."""
+        # Given
+        input_data = GiftTaxSimpleInput(
+            gift_date=date(2025, 10, 15),
+            donor_relationship="직계비속",  # 부모→자녀 = 직계비속
+            gift_property_value=300_000_000,
+            is_non_resident=True,  # 비거주자
+        )
+
+        # When
+        result = calculate_gift_tax_simple(**input_data.model_dump())
+
+        # Then
+        assert result["gift_value"] == 300_000_000
+        assert result["total_deduction"] == 0  # 비거주자는 공제 0원
+        assert result["taxable_base"] == 300_000_000
+        assert result["calculated_tax"] == 50_000_000  # 3억 × 20% - 1천만 = 5천만
+        assert result["surtax"] == 0
+        assert result["final_tax"] == 50_000_000
+
+    def test_case6_other_relative_100m(self):
+        """Case 6: 기타친족 (1억, 공제 1천만원)."""
+        # Given
+        input_data = GiftTaxSimpleInput(
+            gift_date=date(2025, 10, 15),
+            donor_relationship="기타친족",
+            gift_property_value=100_000_000,
+        )
+
+        # When
+        result = calculate_gift_tax_simple(**input_data.model_dump())
+
+        # Then
+        assert result["gift_value"] == 100_000_000
+        assert result["total_deduction"] == 10_000_000  # 기타친족 공제 1천만원
+        assert result["taxable_base"] == 90_000_000
+        assert result["calculated_tax"] == 9_000_000  # 9천만 × 10% = 900만
+        assert result["surtax"] == 0
+        assert result["final_tax"] == 9_000_000
 
 
 class TestGiftTaxInputValidation:
