@@ -235,8 +235,6 @@ def calculate_gift_tax_simple(
     marriage_deduction_amount: int = 0,
     childbirth_deduction_amount: int = 0,
     secured_debt: int = 0,
-    past_gifts_value: int = 0,
-    past_tax_paid: int = 0,
 ) -> GiftTaxSimpleOutput:
     """국세청 증여세 간편계산 로직"""
     ...
@@ -255,8 +253,6 @@ def calculate_gift_tax_simple(
     marriage_deduction_amount: int = 0,
     childbirth_deduction_amount: int = 0,
     secured_debt: int = 0,
-    past_gifts_value: int = 0,
-    past_tax_paid: int = 0,
 ) -> GiftTaxSimpleOutput:
     """국세청 증여세 간편계산 로직"""
     steps = []
@@ -285,15 +281,15 @@ def calculate_gift_tax_simple(
         "detail": f"기본 {base_deduction:,}원 + 혼인 {marriage_deduction:,}원 + 출산 {childbirth_deduction:,}원"
     })
 
-    # ③ 과세표준 (10년 합산)
-    taxable_base = (gift_value + past_gifts_value) - total_deduction
+    # ③ 과세표준
+    taxable_base = gift_value - total_deduction
 
     steps.append({
         "step": 3,
         "description": "과세표준",
-        "formula": "(증여재산가액 + 사전증여재산) - 증여재산공제",
+        "formula": "증여재산가액 - 증여재산공제",
         "value": max(taxable_base, 0),
-        "detail": f"({gift_value:,}원 + {past_gifts_value:,}원) - {total_deduction:,}원"
+        "detail": f"{gift_value:,}원 - {total_deduction:,}원"
     })
 
     if taxable_base <= 0:
@@ -332,21 +328,20 @@ def calculate_gift_tax_simple(
         })
 
     # ⑥ 최종 증여세액
-    final_tax = calculated_tax + surtax - past_tax_paid
+    final_tax = calculated_tax + surtax
 
     steps.append({
         "step": 6,
         "description": "최종 증여세액",
-        "formula": "(산출세액 + 할증세액) - 사전증여세액",
+        "formula": "산출세액 + 할증세액",
         "value": max(final_tax, 0),
-        "detail": f"({calculated_tax:,}원 + {surtax:,}원) - {past_tax_paid:,}원"
+        "detail": f"{calculated_tax:,}원 + {surtax:,}원"
     })
 
     # 주의사항
     warnings = generate_warnings(
         gift_date=gift_date,
         is_generation_skipping=is_generation_skipping,
-        past_gifts_value=past_gifts_value,
     )
 
     return {
@@ -388,7 +383,7 @@ def get_tax_rate_detail(taxable_base: int) -> str:
     return ""
 
 
-def generate_warnings(gift_date: date, is_generation_skipping: bool, past_gifts_value: int) -> list[str]:
+def generate_warnings(gift_date: date, is_generation_skipping: bool) -> list[str]:
     """주의사항 생성"""
     warnings = []
 
@@ -399,11 +394,8 @@ def generate_warnings(gift_date: date, is_generation_skipping: bool, past_gifts_
     # 기한 후 신고 가산세
     warnings.append("기한 후 신고 시 가산세 20%가 부과됩니다.")
 
-    # 10년 합산 안내
-    if past_gifts_value > 0:
-        warnings.append("향후 10년 이내 동일인으로부터 추가 증여 시 이번 증여와 합산하여 과세됩니다.")
-    else:
-        warnings.append("향후 10년 이내 동일인으로부터 추가 증여 시 합산 과세됩니다.")
+    # 10년 합산 안내 (간편계산기는 합산 미지원, 안내만)
+    warnings.append("향후 10년 이내 동일인으로부터 추가 증여 시 합산 과세됩니다.")
 
     # 세대생략 할증 안내
     if is_generation_skipping:
