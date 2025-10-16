@@ -20,8 +20,9 @@
 
 ### LLM-6.1 Clarifying 질문으로 핵심 변수 수집
 - **Linked PRD**: `docs/PRD.md:120`, `docs/prd_detail/ai-logic.md:20`, `docs/prd_detail/ai-logic/04-clarifying-strategy.md:11`
+- **Linked Spec**: `docs/prd_detail/tax-calculation/nts-gift-tax-simple-calculator-spec.md` (국세청 간편계산기 기준)
 - **Tasks**
-  - [ ] `LLM-6.1.a` Clarifying 템플릿 정의 및 용어 설명 문구 작성 (Owner: TBD)
+  - [✅] `LLM-6.1.a` Clarifying 템플릿 정의 및 용어 설명 문구 작성 (완료: `04-clarifying-strategy.md` v2.0)
   - [ ] `LLM-6.1.b` LangGraph Clarifying 노드 설계 (입력/출력 상태 모델) (Owner: TBD)
   - [ ] `LLM-6.1.c` Clarifying 단계에서 `clarifying_context[]` 메타데이터 기록 (Owner: TBD)
   - [ ] `LLM-6.1.d` Out-of-scope 판별 및 종료 응답 구현 (Owner: TBD)
@@ -88,10 +89,11 @@
 
 ### LLM-13.1 증여세 계산 규칙 준수
 - **Linked PRD**: `docs/PRD.md:136`, `docs/PRD.md:140`, `docs/prd_detail/ai-logic/03-message-format.md:103`
+- **Linked Spec**: `docs/prd_detail/tax-calculation/nts-gift-tax-simple-calculator-spec.md`
 - **Tasks**
-  - [ ] `LLM-13.1.a` Gift Tax 입력 파라미터 맵핑 정의 (Owner: TBD)
-  - [ ] `LLM-13.1.b` 계산 단계 로그(step/fomula) 포맷 설계 (Owner: TBD)
-  - [ ] `LLM-13.1.c` 가산세·공제 규칙을 엔진에 통합 (Owner: TBD)
+  - [✅] `LLM-13.1.a` Gift Tax 입력 파라미터 맵핑 정의 (완료: 국세청 간편계산기 11개 변수 정의)
+  - [✅] `LLM-13.1.b` 계산 단계 로그(step/formula) 포맷 설계 (완료: 6단계 steps[] 구조 정의)
+  - [✅] `LLM-13.1.c` 가산세·공제 규칙을 엔진에 통합 (완료: 공제액, 세율, 할증 규칙 정의)
 
 ### LLM-13.2 상속세 계산 규칙 준수
 - **Linked PRD**: `docs/PRD.md:142`, `docs/prd_detail/ai-logic.md:12`
@@ -106,6 +108,15 @@
   - [ ] `LLM-13.3.a` 전제/예외 용어 사전 정의 (Owner: TBD)
   - [ ] `LLM-13.3.b` 계산 결과와 텍스트 답변 동기화 로직 구현 (Owner: TBD)
   - [ ] `LLM-13.3.c` 권고 시나리오 템플릿(예: 분할 증여) 정리 (Owner: TBD)
+
+### LLM-13.4 국세청 증여세 간편계산 로직 구현
+- **Linked Spec**: `docs/prd_detail/tax-calculation/nts-gift-tax-simple-calculator-spec.md`
+- **Background**: 국세청 간편계산기를 레퍼런스로 삼아 정확한 증여세 계산 로직을 구현한다.
+- **Tasks**
+  - [ ] `LLM-13.4.a` GiftTaxSimpleInput Pydantic 모델 정의 (11개 변수 검증 포함) (Owner: TBD)
+  - [ ] `LLM-13.4.b` TaxCalculationEngine.calculate_gift_tax_simple() 함수 구현 (Owner: TBD)
+  - [ ] `LLM-13.4.c` 테스트 케이스 5개 검증 (배우자, 세대생략, 10년 합산, 부담부, 기본) (Owner: TBD)
+  - [ ] `LLM-13.4.d` Clarifying 노드와 계산 엔진 통합 (Owner: TBD)
 
 ---
 
@@ -150,5 +161,7 @@
 ---
 
 ## Change Log
+- 2025-10-16: Issue #21 착수 - 증여세 계산기 스펙 문서 분리 (05-gift-tax-calculator-spec.md), Clarifying 전략 문서 업데이트
+- 2025-10-15: 국세청 증여세 간편계산기 기준으로 재정비, LLM-6.1.a/LLM-13.1.a/b/c 완료, LLM-13.4 신규 추가
 - 2025-10-15: Issue #19 완료 - Gemini REST 파이프라인 구축, 응답 스키마 정의, 시스템 프롬프트 작성, 단위 테스트 추가
 - 2025-10-15: 문서 초안 작성 (Owner: TBD)
