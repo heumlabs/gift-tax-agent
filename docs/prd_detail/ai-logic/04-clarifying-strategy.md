@@ -61,11 +61,11 @@
 ```python
 # 혼인공제 질문 조건 (조건부)
 if donor_relationship in ["직계존속", "직계비속"]:
-    ask_marriage_deduction = True
+    ask_marriage_deduction_amount = True
 
 # 출산공제 질문 조건 (조건부)
 if donor_relationship in ["직계존속", "직계비속"]:
-    ask_childbirth_deduction = True
+    ask_childbirth_deduction_amount = True
 
 # 채무 질문 (선택)
 # - 간편계산기: 기본값 0으로 생략 가능

@@ -54,9 +54,9 @@
 | `is_generation_skipping` | `bool` | ✅ | `false` | 세대생략 증여 여부 |
 | `is_minor_recipient` | `bool` | ✅ | `false` | 수증자 미성년자 여부 |
 | `is_non_resident` | `bool` | ✅ | `false` | 수증자 비거주자 여부 |
-| `marriage_deduction_amount` | `int` | 옵션 | `0` | 혼인공제액 (최대 1억) |
-| `childbirth_deduction_amount` | `int` | 옵션 | `0` | 출산공제액 (최대 1억) |
-| `secured_debt` | `int` | 옵션 | `0` | 담보채무액 |
+| `marriage_deduction_amount` | `int` | 옵션 | `0` | 혼인공제액 (최대 1억, 직계존속/비속만 적용) |
+| `childbirth_deduction_amount` | `int` | 옵션 | `0` | 출산공제액 (최대 1억, 직계존속/비속만 적용) |
+| `secured_debt` | `int` | 옵션 | `0` | 담보채무액 (부담부증여) |
 
 ### 3.2. donor_relationship 허용값
 
@@ -104,6 +104,7 @@ class GiftTaxSimpleInput(BaseModel):
     is_non_resident: bool = Field(default=False, description="수증자 비거주자 여부")
 
     # Tier 3: 공제 및 채무
+    # 주의: marriage/childbirth 공제는 직계존속/비속 관계에서만 적용됨 (Clarifying 전략 참고)
     marriage_deduction_amount: int = Field(default=0, ge=0, le=100_000_000, description="혼인공제액")
     childbirth_deduction_amount: int = Field(default=0, ge=0, le=100_000_000, description="출산공제액")
     secured_debt: int = Field(default=0, ge=0, description="담보채무액")
