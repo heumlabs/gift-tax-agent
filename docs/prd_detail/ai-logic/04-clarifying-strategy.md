@@ -39,15 +39,15 @@
 | `is_minor_recipient` | `boolean` | 수증자 미성년자 여부 (만 19세 미만) | "증여받으시는 분이 미성년자(만 19세 미만)인가요?" |
 | `is_non_resident` | `boolean` | 수증자 비거주자 여부 | "증여받으시는 분이 해외에 거주 중이신가요? (1년 중 183일 이상)" |
 
-### Tier 3: 공제 및 합산 정보
+### Tier 3: 공제 및 채무 정보
 
 | 변수명 | 타입 | 필수 | 설명 | Clarifying 질문 예시 |
 |--------|------|------|------|---------------------|
-| `past_gifts_value` | `int` | ✅ | 10년 이내 동일인 증여재산 합계 | "최근 10년 내 같은 분에게서 증여받은 적이 있나요? 있다면 총 얼마인가요?" |
 | `marriage_deduction_amount` | `int` | 조건부 | 혼인공제액 (최대 1억) | "혼인 전후 2년 이내 증여받으신 것인가요?" |
 | `childbirth_deduction_amount` | `int` | 조건부 | 출산공제액 (최대 1억) | "자녀 출생 2년 이내 증여받으신 것인가요?" |
 | `secured_debt` | `int` | 조건부 | 담보채무액 | "증여받은 재산에 담보대출이나 임대보증금이 있나요?" |
-| `past_tax_paid` | `int` | 조건부 | 사전 증여세액 | "이전 증여 시 납부한 세금이 있나요?" |
+
+> **참고**: 10년 합산 과세(`past_gifts_value`, `past_tax_paid`)는 국세청 간편계산기 범위를 벗어나므로 Phase 1에서 제외되었습니다.
 
 ### 질문 순서 원칙
 
@@ -70,10 +70,6 @@ if donor_relationship in ["직계존속", "직계비속"]:
 # 부동산, 건물 등 담보 가능 자산인 경우에만
 if asset_type in ["부동산", "건물", "상업용건물"]:
     ask_secured_debt = True
-
-# 사전증여세액 질문 조건
-if past_gifts_value > 0:
-    ask_past_tax_paid = True
 ```
 
 ## 3. Clarifying 질문 템플릿
@@ -150,16 +146,7 @@ if past_gifts_value > 0:
 선택지: 예 / 아니오
 ```
 
-### 3.4. Tier 3 질문 (공제 및 합산)
-
-**past_gifts_value (10년 합산)**
-```
-최근 10년 내 같은 분에게서 증여받은 적이 있나요?
-
-💡 증여세는 동일인으로부터 받은 증여를 10년간 합산하여 계산합니다.
-
-선택지: 없음(0원) / 있음(금액 입력)
-```
+### 3.4. Tier 3 질문 (공제 및 채무)
 
 **marriage_deduction_amount (혼인공제)**
 ```
@@ -189,15 +176,6 @@ if past_gifts_value > 0:
 선택지: 없음(0원) / 있음(금액 입력)
 ```
 
-**past_tax_paid (사전 증여세액)**
-```
-이전에 증여받으실 때 납부한 증여세가 있나요?
-
-💡 10년 합산 과세 시, 이전 납부 세액은 공제됩니다.
-
-선택지: 없음(0원) / 있음(금액 입력)
-```
-
 ## 4. Clarifying 루프 설계
 
 ### 4.1. 전체 흐름
@@ -221,13 +199,13 @@ if past_gifts_value > 0:
 **Step 1: 초기 분석**
 - 사용자 첫 질문에서 의도 분류 (gift_tax, inheritance_tax, general_info)
 - LLM으로 초기 엔티티 추출
-  - 예: "부모님께 1억 받았어요" → `{donor_relationship: "직계존속", gift_property_value: 100000000}`
+  - 예: "부모님께 1억 받았어요" → `{donor_relationship: "직계비속", gift_property_value: 100000000}`
+  - 주의: donor_relationship은 증여자 기준 (부모→자녀 = 직계비속)
 
 **Step 2: 필수 변수 체크**
 - Tier 1 필수 변수 확인: gift_date, donor_relationship, gift_property_value
 - Tier 2 기본값 가능: is_generation_skipping (false), is_minor_recipient (false), is_non_resident (false)
-- Tier 3 필수: past_gifts_value
-- 조건부 변수: 관계/자산 유형에 따라 추가 질문
+- Tier 3 조건부 변수: 관계/자산 유형에 따라 추가 질문 (marriage_deduction, childbirth_deduction, secured_debt)
 
 **Step 3: Clarifying 질문 생성**
 - 누락 변수를 Tier 순서대로 정렬
@@ -243,7 +221,7 @@ if past_gifts_value > 0:
 **계산 가능 조건 (TaxCalculationEngine 호출)**
 - Tier 1 필수 변수 모두 수집 완료
 - Tier 2 변수 수집 또는 기본값 사용
-- Tier 3 필수 변수(past_gifts_value) 수집 완료
+- Tier 3 조건부 변수 수집 (필요한 경우)
 
 **계산 불가 → RAG 안내**
 - 3회 이상 동일 변수 수집 실패
