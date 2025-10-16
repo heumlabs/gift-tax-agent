@@ -3,13 +3,14 @@ chalice
 pydantic-settings
 
 # AI/ML
-google-generativeai==0.8.3
+httpx>=0.28.0,<0.29.0
 
 # Database
 psycopg2-binary==2.9.9
 SQLAlchemy==2.0.32
 sqlmodel==0.0.22
 pgvector==0.3.6
+alembic==1.13.3
 
 # Utilities
 pydantic==2.9.2

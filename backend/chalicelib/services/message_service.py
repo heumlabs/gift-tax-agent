@@ -5,6 +5,8 @@
 현재는 Mock 데이터를 반환
 """
 
+import sys
+from pathlib import Path
 from typing import Optional
 from datetime import datetime
 from uuid import uuid4
@@ -14,6 +16,13 @@ from chalicelib.models.api import (
     MessageListResponse,
     AssistantMessageResponse,
 )
+
+# ai 모듈을 import하기 위해 프로젝트 루트를 sys.path에 추가
+ROOT_DIR = Path(__file__).resolve().parents[3]  # backend/chalicelib/services -> 3 levels up
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from ai import generate_assistant_message  # noqa: E402
 
 
 class MessageService:
@@ -79,30 +88,14 @@ class MessageService:
         Returns:
             AssistantMessageResponse: AI 응답 메시지
         """
-        # Mock AI 응답 생성
+        # AI 모듈을 통해 실제 응답 생성
+        ai_response = generate_assistant_message(content=content)
+
         assistant_message = MessageResponse(
             id=str(uuid4()),
             role="assistant",
-            content=f"'{content}'에 대한 답변입니다. (Mock 응답)\n\n"
-            "배우자로부터 증여받는 경우, 10년간 6억원까지 증여재산 공제가 적용되어 "
-            "납부할 세액은 일반적으로 없습니다.",
-            metadata={
-                "citations": [
-                    {
-                        "text": "상속세및증여세법 제53조",
-                        "url": "https://www.law.go.kr/...",
-                    }
-                ],
-                "calculation": {
-                    "assumptions": [
-                        "거주자 간 증여",
-                        "최근 10년 이내 동일인 증여 없음",
-                    ],
-                    "taxableAmount": 100000000,
-                    "deduction": 600000000,
-                    "finalTax": 0,
-                },
-            },
+            content=ai_response["content"],
+            metadata=ai_response.get("metadata"),
             createdAt=datetime.utcnow(),
         )
 
