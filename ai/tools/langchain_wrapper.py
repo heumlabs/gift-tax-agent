@@ -35,6 +35,7 @@ def calculate_gift_tax_simple(
         int, Field(description="출산공제액 (최대 1억)", ge=0, le=100_000_000)
     ] = 0,
     secured_debt: Annotated[int, Field(description="담보채무액", ge=0)] = 0,
+    current_date: Annotated[date | None, Field(description="현재 날짜 (기한 경과 판단용)")] = None,
 ) -> GiftTaxSimpleOutput:
     """
     국세청 증여세 간편계산기 Tool (LangGraph 호환).
@@ -53,6 +54,7 @@ def calculate_gift_tax_simple(
         marriage_deduction_amount: 혼인공제액 (최대 1억)
         childbirth_deduction_amount: 출산공제액 (최대 1억)
         secured_debt: 담보채무액
+        current_date: 현재 날짜 (기한 경과 판단용, 기본값: None)
 
     Returns:
         GiftTaxSimpleOutput: 계산 결과 (6단계 + 주의사항)
@@ -96,6 +98,7 @@ def calculate_gift_tax_simple(
         marriage_deduction_amount=marriage_deduction_amount,
         childbirth_deduction_amount=childbirth_deduction_amount,
         secured_debt=secured_debt,
+        current_date=current_date,
     )
 
 
