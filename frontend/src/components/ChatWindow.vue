@@ -59,17 +59,27 @@ watch(
   }
 );
 
+/**
+ * 스트리밍 메시지 업데이트 시 스크롤
+ */
+watch(
+  () => chatStore.streamingMessage?.content,
+  () => {
+    scrollToBottom();
+  }
+);
+
 onMounted(() => {
   scrollToBottom();
 });
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-neutral-bg">
+  <div class="flex flex-col h-full bg-neutral-bg-secondary">
     <!-- 메시지 영역 -->
     <div
       ref="messagesContainer"
-      class="flex-1 overflow-y-auto p-4 space-y-4"
+      class="flex-1 overflow-y-auto p-6 space-y-2"
     >
       <!-- 로딩 상태 -->
       <div
@@ -80,16 +90,27 @@ onMounted(() => {
       </div>
 
       <!-- 메시지 목록 -->
-      <template v-else-if="chatStore.sortedMessages.length > 0">
+      <template v-else-if="chatStore.sortedMessages.length > 0 || chatStore.streamingMessage">
         <ChatBubble
           v-for="message in chatStore.sortedMessages"
           :key="message.id"
           :message="message"
         />
 
-        <!-- AI 응답 대기 중 -->
-        <div v-if="chatStore.isLoadingResponse" class="flex justify-start">
-          <div class="bg-neutral-card rounded-lg shadow-sm border border-neutral-border">
+        <!-- 스트리밍 중인 메시지 -->
+        <ChatBubble
+          v-if="chatStore.streamingMessage"
+          :key="chatStore.streamingMessage.id"
+          :message="chatStore.streamingMessage"
+          :is-streaming="true"
+        />
+
+        <!-- AI 응답 대기 중 (스트리밍 시작 전) -->
+        <div v-else-if="chatStore.isLoadingResponse" class="flex justify-start">
+          <div class="flex-shrink-0 w-8 h-8 mr-3 rounded-full bg-accent flex items-center justify-center text-white font-bold text-sm">
+            AI
+          </div>
+          <div class="bg-neutral-card rounded-2xl rounded-bl-sm px-5 py-3">
             <LoadingIndicator />
           </div>
         </div>
@@ -109,30 +130,29 @@ onMounted(() => {
 
     <!-- 입력 영역 -->
     <MessageInput
-      :disabled="chatStore.isLoadingMessages"
-      :loading="chatStore.isLoadingResponse"
+      :disabled="chatStore.isLoadingMessages || chatStore.isStreaming"
+      :loading="chatStore.isLoadingResponse || chatStore.isStreaming"
       @send="handleSendMessage"
     />
   </div>
 </template>
 
 <style scoped>
-/* 스크롤바 스타일 */
+/* 스크롤바 스타일 (다크 모드) */
 .overflow-y-auto::-webkit-scrollbar {
   width: 8px;
 }
 
 .overflow-y-auto::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #171717;
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #404040;
   border-radius: 4px;
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #525252;
 }
 </style>
-

@@ -85,10 +85,10 @@ const handleDeleteSession = async (sessionId: string) => {
       <div class="flex items-center justify-between mb-4">
         <h1 class="text-xl font-bold text-neutral-text">슈킹 AI</h1>
         <button
-          class="lg:hidden p-2 hover:bg-slate-100 rounded-lg transition-colors"
+          class="lg:hidden p-2 hover:bg-neutral-card-hover rounded-lg transition-colors"
           @click="emit('close')"
         >
-          <Icon name="close" :size="20" />
+          <Icon name="close" :size="20" class="text-neutral-text-light" />
         </button>
       </div>
       <Button
@@ -124,10 +124,10 @@ const handleDeleteSession = async (sessionId: string) => {
           v-for="session in sessionStore.sortedSessions"
           :key="session.id"
           :class="[
-            'group relative p-3 rounded-lg cursor-pointer transition-colors',
+            'group relative p-3 rounded-lg cursor-pointer transition-all duration-200',
             sessionStore.currentSessionId === session.id
-              ? 'bg-primary/10 border border-primary/30'
-              : 'hover:bg-slate-100',
+              ? 'bg-primary/20 border border-primary/50'
+              : 'hover:bg-neutral-card-hover',
           ]"
           @click="handleSelectSession(session.id)"
         >
@@ -155,13 +155,13 @@ const handleDeleteSession = async (sessionId: string) => {
             <!-- 액션 버튼들 -->
             <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
               <button
-                class="p-1 hover:bg-slate-200 rounded"
+                class="p-1 hover:bg-neutral-border rounded transition-colors"
                 @click.stop="startEditingTitle(session.id, session.title)"
               >
                 <Icon name="edit" :size="16" class="text-neutral-text-light" />
               </button>
               <button
-                class="p-1 hover:bg-red-100 rounded"
+                class="p-1 hover:bg-danger/20 rounded transition-colors"
                 @click.stop="handleDeleteSession(session.id)"
               >
                 <Icon name="delete" :size="16" class="text-danger" />
@@ -174,7 +174,7 @@ const handleDeleteSession = async (sessionId: string) => {
             <input
               v-model="editingTitle"
               type="text"
-              class="w-full px-2 py-1 border border-primary rounded focus:outline-none focus:ring-2 focus:ring-primary"
+              class="w-full px-2 py-1 bg-neutral-bg-secondary text-neutral-text border border-primary rounded focus:outline-none focus:ring-2 focus:ring-primary"
               @keydown.enter="finishEditingTitle"
               @keydown.esc="editingSessionId = null"
               @blur="finishEditingTitle"
@@ -202,12 +202,11 @@ const handleDeleteSession = async (sessionId: string) => {
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #404040;
   border-radius: 3px;
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #525252;
 }
 </style>
-

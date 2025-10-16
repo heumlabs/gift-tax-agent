@@ -34,17 +34,26 @@ export default {
           hover: '#16A34A',   // green-600
           light: '#4ADE80',   // green-400
         },
-        // Neutral: 배경, 텍스트
+        // Accent: AI 응답 강조
+        accent: {
+          DEFAULT: '#818CF8', // indigo-400
+          hover: '#6366F1',   // indigo-500
+        },
+        // Neutral (Dark Mode): 배경, 텍스트
         neutral: {
-          bg: '#F1F5F9',      // slate-100
-          card: '#FFFFFF',    // white
-          text: '#1E293B',    // slate-800
-          'text-light': '#64748B', // slate-500
-          border: '#CBD5E1',  // slate-300
+          bg: '#0A0A0A',      // 거의 검은색 배경
+          'bg-secondary': '#171717', // neutral-900
+          card: '#262626',    // neutral-800
+          'card-hover': '#404040', // neutral-700
+          text: '#E5E5E5',    // neutral-200
+          'text-light': '#A3A3A3', // neutral-400
+          border: '#404040',  // neutral-700
+          'border-light': '#525252', // neutral-600
         },
         // Status
         danger: '#EF4444',    // red-500
         warning: '#F59E0B',   // amber-500
+        success: '#22C55E',   // green-500
       },
       spacing: {
         sidebar: '280px',
