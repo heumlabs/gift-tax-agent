@@ -411,12 +411,11 @@ def generate_warnings(gift_date: date, is_generation_skipping: bool, past_gifts_
 ```python
 {
     "gift_date": date(2025, 10, 15),
-    "donor_relationship": "직계존속",
+    "donor_relationship": "직계비속",  # 부모→자녀 (증여자 기준)
     "is_generation_skipping": False,
     "is_minor_recipient": False,
     "is_non_resident": False,
     "gift_property_value": 100_000_000,
-    "past_gifts_value": 0,
 }
 ```
 
@@ -434,7 +433,7 @@ def generate_warnings(gift_date: date, is_generation_skipping: bool, past_gifts_
 
 **계산 근거**:
 - 증여재산가액: 1억원
-- 기본공제: 5천만원 (직계존속 성인)
+- 기본공제: 5천만원 (직계비속)
 - 과세표준: 5천만원
 - 산출세액: 5천만원 × 10% = 500만원
 
@@ -476,7 +475,7 @@ def generate_warnings(gift_date: date, is_generation_skipping: bool, past_gifts_
 ```python
 {
     "gift_date": date(2025, 10, 15),
-    "donor_relationship": "직계존속",
+    "donor_relationship": "직계비속",  # 조부모→손자 (증여자 기준)
     "is_generation_skipping": True,
     "is_minor_recipient": True,
     "gift_property_value": 200_000_000,
@@ -497,7 +496,7 @@ def generate_warnings(gift_date: date, is_generation_skipping: bool, past_gifts_
 
 **계산 근거**:
 - 증여재산가액: 2억원
-- 기본공제: 2천만원 (미성년자 특례)
+- 기본공제: 2천만원 (미성년자 특례, 직계비속)
 - 과세표준: 1.8억원
 - 산출세액: 1.8억 × 20% - 1천만원 = 2,600만원
 - 할증세액: 2,600만원 × 30% = 780만원
@@ -511,7 +510,7 @@ def generate_warnings(gift_date: date, is_generation_skipping: bool, past_gifts_
 ```python
 {
     "gift_date": date(2025, 10, 15),
-    "donor_relationship": "직계존속",
+    "donor_relationship": "직계비속",  # 부모→자녀 (증여자 기준)
     "gift_property_value": 500_000_000,
     "secured_debt": 200_000_000,
 }
@@ -523,15 +522,15 @@ def generate_warnings(gift_date: date, is_generation_skipping: bool, past_gifts_
     "gift_value": 300_000_000,
     "total_deduction": 50_000_000,
     "taxable_base": 250_000_000,
-    "calculated_tax": 35_000_000,
+    "calculated_tax": 40_000_000,
     "surtax": 0,
-    "final_tax": 35_000_000,
+    "final_tax": 40_000_000,
 }
 ```
 
 **계산 근거**:
 - 증여재산가액: 5억 - 2억 = 3억원
-- 기본공제: 5천만원
+- 기본공제: 5천만원 (직계비속)
 - 과세표준: 2.5억원
 - 산출세액: 2.5억 × 20% - 1천만원 = 4,000만원
 
