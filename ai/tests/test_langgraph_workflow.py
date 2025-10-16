@@ -3,8 +3,11 @@ LangGraph Workflow E2E 테스트 (Issue #22)
 
 Phase 2 Acceptance Criteria:
 - State가 노드 간 정상 전달됨
-- Intent 분류가 예상대로 동작함
+- Intent 분류가 예상대로 동작함 (Gemini API 기반)
 - Workflow가 에러 없이 실행됨
+
+주의: 이 테스트는 실제 Gemini API를 호출합니다.
+유효한 GOOGLE_API_KEY 환경변수가 필요합니다.
 """
 
 import pytest
@@ -54,15 +57,16 @@ class TestLangGraphWorkflow:
         """
         Case 2: 증여세 언급
         - 입력: "증여세 계산 도와주세요"
-        - 예상: intent = "gift_tax", response = "증여세 계산을 도와드리겠습니다."
+        - 예상: intent = "gift_tax", Tool 노드 호출, 실제 계산 결과 반환
         """
         result = await run_workflow("증여세 계산 도와주세요", session_id="test-case-2")
 
         # Intent 검증
         assert result["intent"] == "gift_tax"
 
-        # Response 검증
-        assert result["response"] == "증여세 계산을 도와드리겠습니다."
+        # Response 검증 - Tool 노드가 실제 계산 결과를 반환
+        assert "증여세 계산 결과" in result["response"]
+        assert "원" in result["response"]
 
         # State 전달 확인
         assert result["user_message"] == "증여세 계산 도와주세요"

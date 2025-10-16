@@ -1,46 +1,36 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import asdict
 from typing import Dict, Optional
 
-from ai.exceptions import ChatPipelineError, GeminiClientError
-from ai.pipelines import ChatPipeline
-from ai.schemas import ChatRequest, ChatResponse
+from ai.exceptions import ChatPipelineError
+from ai.pipelines import run_workflow
 
-_pipeline: Optional[ChatPipeline] = None
-
-
-def _get_pipeline() -> ChatPipeline:
-    global _pipeline
-    if _pipeline is None:
-        _pipeline = ChatPipeline.from_env()
-    return _pipeline
-
-
-def _serialize_response(response: ChatResponse) -> Dict[str, object]:
-    """
-    ChatResponse를 backend가 사용할 수 있는 dict로 변환.
-
-    Note: id, role, createdAt 등 인프라 필드는 backend에서 생성하므로
-    LLM 모듈에서는 content와 metadata만 반환한다.
-    """
-    metadata: Dict[str, object] = dict(asdict(response))
-    metadata.pop("content", None)
-    return {
-        "content": response.content,
-        "metadata": metadata,
-    }
+# 기존 ChatPipeline 제거하고 LangGraph Workflow 사용
 
 
 def generate_assistant_message(content: str, metadata: Optional[Dict[str, object]] = None) -> Dict[str, object]:
-    request = ChatRequest(content=content, metadata=metadata)
-    pipeline = _get_pipeline()
-    try:
-        response = asyncio.run(pipeline.run(request))
-    except (GeminiClientError, ChatPipelineError):
-        raise
-    except Exception as exc:  # noqa: B902
-        raise ChatPipelineError(str(exc)) from exc
+    """
+    사용자 메시지를 받아 LangGraph Workflow를 실행하고 AI 응답 반환
 
-    return _serialize_response(response)
+    Args:
+        content: 사용자 메시지 내용
+        metadata: 추가 메타데이터 (현재 미사용)
+
+    Returns:
+        dict: {"content": str, "metadata": dict}
+    """
+    try:
+        # LangGraph Workflow 실행
+        result = asyncio.run(run_workflow(user_message=content))
+
+        # Backend API 형식으로 변환
+        return {
+            "content": result.get("response", ""),
+            "metadata": {
+                "intent": result.get("intent", ""),
+                "session_id": result.get("session_id", ""),
+            },
+        }
+    except Exception as exc:
+        raise ChatPipelineError(str(exc)) from exc
