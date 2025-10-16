@@ -2,8 +2,8 @@
 
 from datetime import date
 
-from gift_tax.calculator import calculate_gift_tax_simple
-from gift_tax.models import GiftTaxSimpleOutput
+from ai.tools.gift_tax.calculator import calculate_gift_tax_simple
+from ai.tools.gift_tax.models import GiftTaxSimpleOutput
 
 
 def print_result(result: GiftTaxSimpleOutput) -> None:

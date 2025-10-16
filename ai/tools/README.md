@@ -70,6 +70,9 @@ agent = create_react_agent(model=llm, tools=tools)
 
 # 커버리지 포함
 .venv/bin/python -m pytest ai/tests/tools/ --cov=ai.tools --cov-report=term-missing
+
+# 시나리오 검증 스크립트 (국세청 계산기와 비교)
+.venv/bin/python -m ai.tools.test_scenario
 ```
 
 ## 📊 계산 결과 구조
