@@ -19,6 +19,7 @@ const emit = defineEmits<{
 
 const inputText = ref('');
 const textarea = ref<HTMLTextAreaElement | null>(null);
+const isComposing = ref(false);
 
 /**
  * 자동으로 textarea 높이 조절
@@ -46,10 +47,25 @@ const sendMessage = () => {
 };
 
 /**
+ * IME 조합 시작 (한글, 중국어, 일본어 등)
+ */
+const handleCompositionStart = () => {
+  isComposing.value = true;
+};
+
+/**
+ * IME 조합 종료
+ */
+const handleCompositionEnd = () => {
+  isComposing.value = false;
+};
+
+/**
  * 키보드 이벤트 처리
+ * IME 조합 중에는 Enter 키를 무시하여 한글 입력 문제 해결
  */
 const handleKeydown = (event: KeyboardEvent) => {
-  if (event.key === 'Enter' && !event.shiftKey) {
+  if (event.key === 'Enter' && !event.shiftKey && !isComposing.value) {
     event.preventDefault();
     sendMessage();
   }
@@ -70,6 +86,8 @@ const handleKeydown = (event: KeyboardEvent) => {
           class="w-full resize-none rounded-lg border border-neutral-border px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-slate-50 disabled:text-slate-500 transition-all max-h-40 overflow-y-auto"
           @input="adjustHeight"
           @keydown="handleKeydown"
+          @compositionstart="handleCompositionStart"
+          @compositionend="handleCompositionEnd"
         ></textarea>
       </div>
 
