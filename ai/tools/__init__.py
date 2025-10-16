@@ -1,4 +1,9 @@
-"""AI Tools module."""
+"""
+LangGraph Tools
+
+Agent에서 호출 가능한 Tool 모음입니다.
+Phase 1에서 구현된 증여세 계산 Tool 등이 여기에 위치합니다.
+"""
 
 from .gift_tax.calculator import calculate_gift_tax_simple as _calculate_gift_tax_simple
 from .gift_tax.models import GiftTaxSimpleInput, GiftTaxSimpleOutput
