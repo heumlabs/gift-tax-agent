@@ -20,20 +20,40 @@
 
 ### LLM-6.1 Clarifying 질문으로 핵심 변수 수집
 - **Linked PRD**: `docs/PRD.md:120`, `docs/prd_detail/ai-logic.md:20`, `docs/prd_detail/ai-logic/04-clarifying-strategy.md:11`
-- **Linked Spec**: `docs/prd_detail/tax-calculation/nts-gift-tax-simple-calculator-spec.md` (국세청 간편계산기 기준)
+- **Linked Spec**:
+  - `docs/prd_detail/ai-logic/04-clarifying-implementation-spec.md` (Phase 3 구현 상세 명세)
+  - `docs/prd_detail/ai-logic/05-gift-tax-calculator-spec.md` (9개 변수 정의)
 - **Tasks**
-  - [✅] `LLM-6.1.a` Clarifying 템플릿 정의 및 용어 설명 문구 작성 (완료: `04-clarifying-strategy.md` v2.0)
-  - [ ] `LLM-6.1.b` LangGraph Clarifying 노드 설계 (입력/출력 상태 모델) (Owner: TBD)
-  - [ ] `LLM-6.1.c` Clarifying 단계에서 `clarifying_context[]` 메타데이터 기록 (Owner: TBD)
-  - [ ] `LLM-6.1.d` Out-of-scope 판별 및 종료 응답 구현 (Owner: TBD)
+  - [✅] `LLM-6.1.a` Clarifying 템플릿 정의 및 용어 설명 문구 작성 (완료: `04-clarifying-strategy.md` v2.2)
+  - [ ] `LLM-6.1.b` LangGraph Clarifying 노드 설계 및 구현 (Owner: Issue #23)
+    - 파라미터 파싱 (Gemini API 구조화 출력)
+    - 파라미터 누적 (멀티턴 대화)
+    - 질문 생성 (Tier 순서대로 1개씩)
+    - 상세: `04-clarifying-implementation-spec.md` 섹션 2, 3, 5.2
+  - [ ] `LLM-6.1.c` Clarifying 단계에서 `clarifying_context[]` 메타데이터 기록 (Owner: Issue #23)
+    - collected_parameters 저장
+    - missing_parameters 저장
+    - 상세: `04-clarifying-implementation-spec.md` 섹션 6
+  - [✅] `LLM-6.1.d` Out-of-scope 판별 및 종료 응답 구현 (완료: Issue #22)
 
 ### LLM-6.2 필수 변수 확보 후 세액 계산 및 전제/예외 제시
 - **Linked PRD**: `docs/PRD.md:124`, `docs/PRD.md:132`, `docs/prd_detail/ai-logic/03-message-format.md:96`
+- **Linked Spec**: `docs/prd_detail/ai-logic/04-clarifying-implementation-spec.md` (섹션 5.3, 5.4, 5.5)
 - **Tasks**
-  - [ ] `LLM-6.2.a` 계산 가능 조건 검사 로직 구현 (Owner: TBD)
-  - [ ] `LLM-6.2.b` TaxCalculationEngine 호출 인터페이스 설계 (Owner: TBD)
-  - [x] `LLM-6.2.c` 계산 결과를 `calculation`, `assumptions`, `exceptions`, `recommendations` 필드에 매핑 (Owner: LLM, Issue: #19)
-  - [ ] `LLM-6.2.d` 계산 불가 시 RAG 안내로 되돌리는 분기 처리 (Owner: TBD)
+  - [ ] `LLM-6.2.a` 계산 가능 조건 검사 로직 구현 (Owner: Issue #23)
+    - should_calculate() 분기 함수
+    - Tier 1 필수 변수 체크
+    - 상세: `04-clarifying-implementation-spec.md` 섹션 5.5
+  - [ ] `LLM-6.2.b` calculation_node 구현 (Owner: Issue #23)
+    - collected_parameters → GiftTaxSimpleInput 변환
+    - Pydantic 검증
+    - calculate_gift_tax_simple() 호출
+    - 상세: `04-clarifying-implementation-spec.md` 섹션 5.3
+  - [✅] `LLM-6.2.c` 계산 결과를 `calculation`, `assumptions`, `exceptions`, `recommendations` 필드에 매핑 (완료: Issue #21)
+  - [ ] `LLM-6.2.d` synthesis_node 구현 (Owner: Issue #23)
+    - 템플릿 + LLM 하이브리드 답변 생성
+    - 준법 고지 추가
+    - 상세: `04-clarifying-implementation-spec.md` 섹션 4, 5.4
 
 ### LLM-6.3 법령/예규 근거 링크 노출
 - **Linked PRD**: `docs/PRD.md:128`, `docs/PRD.md:150`, `docs/prd_detail/ai-logic/03-message-format.md:64`
@@ -44,10 +64,18 @@
 
 ### LLM-6.4 세션 맥락 유지 및 재질문 응답
 - **Linked PRD**: `docs/PRD.md:5`, `docs/PRD.md:120`, `docs/prd_detail/ai-logic/03-message-format.md:41`
+- **Linked Spec**: `docs/prd_detail/ai-logic/04-clarifying-implementation-spec.md` (섹션 6)
 - **Tasks**
-  - [x] `LLM-6.4.a` 세션 상태(수집 변수, Clarifying 히스토리, RAG 컨텍스트) 저장 구조 설계 (Owner: LLM, Issue: #19)
-  - [ ] `LLM-6.4.b` LangGraph 상태머신에서 컨텍스트 재사용 로직 구현 (Owner: TBD)
-  - [ ] `LLM-6.4.c` 메시지 메타데이터와 DB 스키마 일치 검증 (Owner: TBD)
+  - [✅] `LLM-6.4.a` 세션 상태(수집 변수, Clarifying 히스토리, RAG 컨텍스트) 저장 구조 설계 (완료: Issue #19)
+  - [ ] `LLM-6.4.b` 멀티턴 대화 상태 관리 구현 (Owner: Issue #23)
+    - Backend에서 이전 메시지 조회
+    - collected_parameters 추출 및 누적
+    - run_workflow()에 previous_collected_parameters 전달
+    - 상세: `04-clarifying-implementation-spec.md` 섹션 6
+  - [ ] `LLM-6.4.c` 메시지 메타데이터와 DB 스키마 일치 검증 (Owner: Issue #23)
+    - collected_parameters 저장
+    - missing_parameters 저장
+    - calculation 결과 저장
 
 ---
 
@@ -161,7 +189,29 @@
 ---
 
 ## Change Log
-- 2025-10-16: Issue #21 착수 - 증여세 계산기 스펙 문서 분리 (05-gift-tax-calculator-spec.md), Clarifying 전략 문서 업데이트
+- 2025-10-16: Phase 3 상세 기획 반영 - 04-clarifying-implementation-spec.md 작성, LLM-6.1/6.2/6.4 태스크 상세화
+- 2025-10-16: Issue #21 완료 - 증여세 계산기 스펙 문서 분리 (05-gift-tax-calculator-spec.md), 9개 변수 확정
+- 2025-10-16: Issue #22 완료 - LangGraph 기본 Workflow 구현, Intent 분류, Tool 노드 통합
 - 2025-10-15: 국세청 증여세 간편계산기 기준으로 재정비, LLM-6.1.a/LLM-13.1.a/b/c 완료, LLM-13.4 신규 추가
 - 2025-10-15: Issue #19 완료 - Gemini REST 파이프라인 구축, 응답 스키마 정의, 시스템 프롬프트 작성, 단위 테스트 추가
-- 2025-10-15: 문서 초안 작성 (Owner: TBD)
+- 2025-10-15: 문서 초안 작성
+
+## 다음 구현 (Issue #23)
+
+**Phase 3: Clarifying 노드 및 계산 Tool 통합**
+
+구현 가이드: [04-clarifying-implementation-spec.md](./04-clarifying-implementation-spec.md)
+
+핵심 작업:
+1. Clarifying 노드 구현 (파라미터 파싱, 질문 생성)
+2. Calculation 노드 구현 (Tool 호출)
+3. Synthesis 노드 구현 (답변 합성)
+4. 멀티턴 대화 상태 관리 (Backend 연동)
+5. E2E 테스트 2개 시나리오
+
+완료 기준:
+- 9개 변수 순차 수집
+- Tier 순서대로 1개씩 질문
+- 계산 가능 시 Tool 호출
+- 자연어 답변 합성
+- 2개 E2E 시나리오 통과

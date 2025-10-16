@@ -21,6 +21,7 @@
 - Citation이 비었을 때는 품질 경고와 함께 RAG 재시도를 수행하거나 답변을 중단한다.
 - LangGraph 상태에는 필요한 최소 컨텍스트만 유지하여 토큰 예산을 준수한다 `docs/PRD.md:166`.
 - 외부 검색 도구(WebSearchTool)는 참고자료로만 사용하고, 근거로 삼지 않는다 `docs/PRD.md:152`.
+- **Python 실행 환경**: 모든 Python 명령(pytest, 스크립트 실행 등)은 반드시 프로젝트 루트의 `.venv` 가상환경을 활성화한 후 실행한다. 예: `source .venv/bin/activate && python -m pytest`
 
 ## 5. Coordination Artifacts
 - **Functional Spec**: `functional-spec.md` — ID별 구현 작업, 체크리스트, 담당자.

@@ -314,6 +314,37 @@ interface Feedback {
 
 ---
 
+### 3.8. Phase 3 구현 상태 (Issue #23)
+
+Phase 3에서 Clarifying 노드와 계산 Tool 통합이 완료되었습니다. 다음 필드들이 실제로 사용됩니다:
+
+| 필드 | Phase 3 상태 | 설명 |
+|------|-------------|------|
+| `collected_parameters` | ✅ 구현됨 | 9개 변수 중 현재까지 수집된 파라미터 (Dict) |
+| `missing_parameters` | ✅ 구현됨 | 누락된 Tier 1 필수 변수 목록 (List[str]) |
+| `calculation` | ✅ 구현됨 | 계산 Tool 결과 (Section 3.3 구조 준수) |
+| `assumptions` | 🔜 Phase 4 | Tier 2 기본값 사용 시 명시 (현재는 calculation.assumptions 사용) |
+| `clarifying_context` | 🔜 Phase 4+ | RAG 검색 결과 스니펫 (Section 3.7 구조 준수) |
+| `citations` | 🔜 Phase 4+ | 법령 인용 (RAG 통합 후) |
+| `tool_calls` | ✅ 구현됨 | calculate_gift_tax_simple 호출 로그 (내부용) |
+
+**Phase 3에서 추가된 필드**:
+- `collected_parameters`: Clarifying 노드에서 사용자 입력을 파싱하여 9개 변수를 누적 수집
+- `missing_parameters`: Tier 1 필수 변수 (gift_date, donor_relationship, gift_property_value) 누락 체크
+- `calculation`: 모든 Tier 1 변수 수집 완료 시 calculation_node에서 Tool 실행 후 결과 저장
+
+**멀티턴 대화 지원**:
+- Backend에서 이전 메시지의 `collected_parameters`를 추출하여 AI 서비스에 전달
+- 각 턴마다 파라미터가 누적되어 최종적으로 계산 실행
+- 자세한 통합 로직은 `ai/backend_api_contract.md` Section 5 참조
+
+**Phase 4 이후 계획**:
+- RAG 통합으로 `citations`, `clarifying_context` 실제 사용
+- Tier 2 변수에 대한 명시적 질문 및 `assumptions` 배열 활용
+- Tool 호출 로그 분석을 통한 성능 최적화
+
+---
+
 ## 4. User Message Metadata (간소)
 
 사용자 메시지는 단순하게 유지합니다.
