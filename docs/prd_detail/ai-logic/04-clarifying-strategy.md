@@ -45,7 +45,7 @@
 |--------|------|------|------|---------------------|
 | `marriage_deduction_amount` | `int` | 조건부 | 혼인공제액 (최대 1억) | "혼인 전후 2년 이내 증여받으신 것인가요?" |
 | `childbirth_deduction_amount` | `int` | 조건부 | 출산공제액 (최대 1억) | "자녀 출생 2년 이내 증여받으신 것인가요?" |
-| `secured_debt` | `int` | 조건부 | 담보채무액 | "증여받은 재산에 담보대출이나 임대보증금이 있나요?" |
+| `secured_debt` | `int` | 선택 | 담보채무액 (기본값 0) | "증여받은 재산에 담보대출이나 임대보증금이 있나요?" |
 
 > **참고**: 10년 합산 과세(`past_gifts_value`, `past_tax_paid`)는 국세청 간편계산기 범위를 벗어나므로 Phase 1에서 제외되었습니다.
 
@@ -53,26 +53,29 @@
 
 1. **Tier 1 → Tier 2 → Tier 3** 순서로 질문
 2. 한 번에 **1~2개 질문**만 묶어서 전달
-3. 조건부 질문은 **해당 조건 충족 시에만** 질문
+3. **조건부 질문**: 해당 조건 충족 시에만 질문
+4. **선택 질문**: 기본값(0)으로 계산 가능하나, 정확도 향상을 위해 질문 권장
 
-### 조건부 질문 규칙
+### 조건부 질문 규칙 (Tier 3)
 
 ```python
-# 혼인공제 질문 조건
+# 혼인공제 질문 조건 (조건부)
 if donor_relationship in ["직계존속", "직계비속"]:
     ask_marriage_deduction = True
 
-# 출산공제 질문 조건
+# 출산공제 질문 조건 (조건부)
 if donor_relationship in ["직계존속", "직계비속"]:
     ask_childbirth_deduction = True
 
-# 채무 질문 조건
-# 대화 맥락에서 부동산/주택 언급 시 항상 질문
-# Phase 2에서 LLM이 대화 내용 분석하여 결정
-ask_secured_debt = True  # 간편계산기는 항상 질문 가능
+# 채무 질문 (선택)
+# - 간편계산기: 기본값 0으로 생략 가능
+# - Phase 2 개선: LLM이 대화에서 부동산/주택 언급 시 우선 질문
+ask_secured_debt = False  # Phase 1에서는 생략 (기본값 0 사용)
 ```
 
-> **참고**: `asset_type`은 간편계산기 범위를 벗어나므로 Phase 1에서 제외되었습니다. Phase 2 LangGraph 구현 시 대화 맥락 분석으로 조건부 질문을 결정할 예정입니다.
+> **참고**:
+> - `asset_type`은 간편계산기 범위를 벗어나므로 Phase 1에서 제외되었습니다.
+> - Phase 2 LangGraph 구현 시 대화 맥락 분석으로 `secured_debt` 질문을 동적으로 결정할 예정입니다.
 
 ## 3. Clarifying 질문 템플릿
 
@@ -233,7 +236,9 @@ RELATIONSHIP_MAPPING = {
 **Step 2: 필수 변수 체크**
 - Tier 1 필수 변수 확인: gift_date, donor_relationship, gift_property_value
 - Tier 2 기본값 가능: is_generation_skipping (false), is_minor_recipient (false), is_non_resident (false)
-- Tier 3 조건부 변수: 관계/자산 유형에 따라 추가 질문 (marriage_deduction, childbirth_deduction, secured_debt)
+- Tier 3 조건부/선택 변수:
+  - 조건부: marriage_deduction_amount, childbirth_deduction_amount (관계 조건 충족 시 질문)
+  - 선택: secured_debt (Phase 1에서는 기본값 0 사용, Phase 2에서 맥락 기반 질문)
 
 **Step 3: Clarifying 질문 생성**
 - 누락 변수를 Tier 순서대로 정렬
