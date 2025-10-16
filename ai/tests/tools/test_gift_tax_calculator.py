@@ -99,7 +99,7 @@ class TestGiftTaxCalculator:
         assert result["gift_value"] == 300_000_000  # 5억 - 2억
         assert result["total_deduction"] == 50_000_000
         assert result["taxable_base"] == 250_000_000
-        assert result["calculated_tax"] == 40_000_000  # 2.5억 × 20% - 1천만 = 4천만
+        assert result["calculated_tax"] == 40_000_000  # 2.5억 * 20% - 1천만 = 4천만
         assert result["surtax"] == 0
         assert result["final_tax"] == 40_000_000
 
@@ -120,7 +120,7 @@ class TestGiftTaxCalculator:
         assert result["gift_value"] == 300_000_000
         assert result["total_deduction"] == 0  # 비거주자는 공제 0원
         assert result["taxable_base"] == 300_000_000
-        assert result["calculated_tax"] == 50_000_000  # 3억 × 20% - 1천만 = 5천만
+        assert result["calculated_tax"] == 50_000_000  # 3억 * 20% - 1천만 = 5천만
         assert result["surtax"] == 0
         assert result["final_tax"] == 50_000_000
 
@@ -140,7 +140,7 @@ class TestGiftTaxCalculator:
         assert result["gift_value"] == 100_000_000
         assert result["total_deduction"] == 10_000_000  # 기타친족 공제 1천만원
         assert result["taxable_base"] == 90_000_000
-        assert result["calculated_tax"] == 9_000_000  # 9천만 × 10% = 900만
+        assert result["calculated_tax"] == 9_000_000  # 9천만 * 10% = 900만
         assert result["surtax"] == 0
         assert result["final_tax"] == 9_000_000
 
