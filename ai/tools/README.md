@@ -11,7 +11,7 @@ LLM Agent가 사용할 수 있는 도구 모음입니다.
 **위치**: `ai/tools/gift_tax/`
 
 **구성**:
-- `models.py`: Pydantic 입출력 모델 (11개 변수)
+- `models.py`: Pydantic 입출력 모델 (9개 변수)
 - `calculator.py`: 6단계 계산 로직
 - `constants.py`: 공제액, 세율 등 상수
 
@@ -27,7 +27,7 @@ from ai.tools.gift_tax.calculator import calculate_gift_tax_simple
 
 result = calculate_gift_tax_simple(
     gift_date=date(2025, 10, 15),
-    donor_relationship="직계존속",
+    donor_relationship="직계비속",  # 부모→자녀 (증여자 기준)
     gift_property_value=100_000_000,
 )
 
@@ -94,8 +94,7 @@ agent = create_react_agent(model=llm, tools=tools)
     "final_tax": 5000000,
     "warnings": [
         "증여일로부터 3개월 이내(2026년 01월 13일까지) 신고해야 합니다.",
-        "기한 후 신고 시 가산세 20%가 부과됩니다.",
-        "향후 10년 이내 동일인으로부터 추가 증여 시 합산 과세됩니다."
+        "기한 후 신고 시 가산세 20%가 부과됩니다."
     ]
 }
 ```
