@@ -3,6 +3,7 @@
 from datetime import date
 
 import pytest
+from pydantic import ValidationError
 
 from ai.tools.gift_tax.calculator import calculate_gift_tax_simple
 from ai.tools.gift_tax.models import GiftTaxSimpleInput
@@ -108,7 +109,7 @@ class TestGiftTaxInputValidation:
 
     def test_secured_debt_exceeds_property_value_raises_error(self):
         """채무액이 재산가액을 초과하면 에러."""
-        with pytest.raises(ValueError, match="채무액이 증여재산가액보다 클 수 없습니다"):
+        with pytest.raises(ValidationError, match="채무액이 증여재산가액보다 클 수 없습니다"):
             GiftTaxSimpleInput(
                 gift_date=date(2025, 10, 15),
                 donor_relationship="직계비속",
@@ -118,7 +119,7 @@ class TestGiftTaxInputValidation:
 
     def test_future_gift_date_raises_error(self):
         """미래 증여일은 에러."""
-        with pytest.raises(ValueError, match="증여일은 미래 날짜일 수 없습니다"):
+        with pytest.raises(ValidationError, match="증여일은 미래 날짜일 수 없습니다"):
             GiftTaxSimpleInput(
                 gift_date=date(2099, 12, 31),
                 donor_relationship="배우자",
@@ -127,7 +128,7 @@ class TestGiftTaxInputValidation:
 
     def test_negative_gift_value_raises_error(self):
         """증여재산가액은 양수여야 함."""
-        with pytest.raises(ValueError):
+        with pytest.raises(ValidationError):
             GiftTaxSimpleInput(
                 gift_date=date(2025, 10, 15),
                 donor_relationship="직계비속",
@@ -136,7 +137,7 @@ class TestGiftTaxInputValidation:
 
     def test_marriage_deduction_exceeds_limit(self):
         """혼인공제액이 1억 초과 시 에러."""
-        with pytest.raises(ValueError):
+        with pytest.raises(ValidationError):
             GiftTaxSimpleInput(
                 gift_date=date(2025, 10, 15),
                 donor_relationship="직계비속",
