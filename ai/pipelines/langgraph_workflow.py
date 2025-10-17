@@ -1101,7 +1101,8 @@ def create_workflow() -> StateGraph:
 async def run_workflow(
     user_message: str,
     session_id: str = "default",
-    previous_collected_parameters: dict | None = None
+    previous_collected_parameters: dict | None = None,
+    messages: list | None = None
 ) -> WorkflowState:
     """
     Workflow 실행 헬퍼 함수 (비동기)
@@ -1112,19 +1113,20 @@ async def run_workflow(
         user_message: 사용자 입력 메시지
         session_id: 세션 ID (기본값: "default")
         previous_collected_parameters: 이전까지 수집된 파라미터 (누적)
+        messages: 대화 히스토리 (role, content 형태의 dict 리스트)
 
     Returns:
         최종 WorkflowState
     """
     graph = create_workflow()
 
-    # 초기 상태 (이전 파라미터 포함)
+    # 초기 상태 (이전 파라미터 및 대화 히스토리 포함)
     # 첫 턴(previous_collected_parameters가 None)일 때는 None 유지 → Intent 분류 실행
     # 두 번째 턴 이후(빈 dict 또는 값 있는 dict)일 때는 그대로 전달 → Clarifying 모드
     initial_state: WorkflowState = {
         "session_id": session_id,
         "user_message": user_message,
-        "messages": [],
+        "messages": messages or [],
         "collected_parameters": previous_collected_parameters,  # None or dict
         "missing_parameters": [],
         "metadata": {},

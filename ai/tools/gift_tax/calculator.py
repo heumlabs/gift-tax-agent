@@ -431,24 +431,39 @@ def generate_warnings(gift_date: date, is_generation_skipping: bool, current_dat
     """
     warnings = []
 
-    # 신고 기한
-    filing_deadline = gift_date + timedelta(days=90)
-
-    # 기한 경과 여부 확인
-    if current_date > filing_deadline:
-        # 기한 경과 - 경고 메시지
-        overdue_days = (current_date - filing_deadline).days
+    # 미래 날짜 체크
+    if gift_date > current_date:
+        # 미래 날짜 - 안내 메시지
         warnings.append(
-            f"⚠️ 신고기한({filing_deadline.strftime('%Y년 %m월 %d일')})이 {overdue_days}일 경과했습니다. "
-            f"즉시 신고하셔야 하며, 기한 후 신고 가산세(무신고 20%, 납부지연 등)가 부과될 수 있습니다."
+            f"💡 증여 예정일이 {gift_date.strftime('%Y년 %m월 %d일')}로 미래 날짜입니다. "
+            f"현재 세법 기준({current_date.year}년)으로 계산되었으며, 실제 증여 시점의 세법이 달라질 수 있습니다."
+        )
+
+        # 신고 기한 (예상)
+        filing_deadline = gift_date + timedelta(days=90)
+        warnings.append(
+            f"증여 후 3개월 이내({filing_deadline.strftime('%Y년 %m월 %d일')}까지) 신고해야 합니다."
         )
     else:
-        # 기한 내 - 일반 안내
-        remaining_days = (filing_deadline - current_date).days
-        warnings.append(
-            f"증여일로부터 3개월 이내({filing_deadline.strftime('%Y년 %m월 %d일')}까지, 남은 기간: {remaining_days}일) 신고해야 합니다."
-        )
-        warnings.append("기한 후 신고 시 가산세가 부과됩니다.")
+        # 과거 또는 오늘 - 기존 로직
+        # 신고 기한
+        filing_deadline = gift_date + timedelta(days=90)
+
+        # 기한 경과 여부 확인
+        if current_date > filing_deadline:
+            # 기한 경과 - 경고 메시지
+            overdue_days = (current_date - filing_deadline).days
+            warnings.append(
+                f"⚠️ 신고기한({filing_deadline.strftime('%Y년 %m월 %d일')})이 {overdue_days}일 경과했습니다. "
+                f"즉시 신고하셔야 하며, 기한 후 신고 가산세(무신고 20%, 납부지연 등)가 부과될 수 있습니다."
+            )
+        else:
+            # 기한 내 - 일반 안내
+            remaining_days = (filing_deadline - current_date).days
+            warnings.append(
+                f"증여일로부터 3개월 이내({filing_deadline.strftime('%Y년 %m월 %d일')}까지, 남은 기간: {remaining_days}일) 신고해야 합니다."
+            )
+            warnings.append("기한 후 신고 시 가산세가 부과됩니다.")
 
     # 세대생략 할증 안내
     if is_generation_skipping:
