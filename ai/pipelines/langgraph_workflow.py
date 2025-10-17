@@ -843,10 +843,13 @@ async def _search_web(user_message: str, client: GeminiClient) -> str:
         str: 웹 검색 결과 요약 + 출처
     """
     try:
-        # Google Search Grounding으로 웹 검색
+        # Google Search Grounding으로 웹 검색 (단일 검색으로 제한)
         LOGGER.info("[Web Search] Starting Google Search grounding")
         grounding_response = await client.generate_content_with_search(
-            system_prompt="질문에 대한 핵심 정보를 간결하게 정리해주세요. 최신 정보와 공식 출처를 우선시하세요.",
+            system_prompt="""이 질문에 대해 가장 관련성 높은 정보를 간결하게 정리해주세요.
+
+중요: 웹 검색은 정확히 한 번만 수행하세요. 여러 검색어를 생성하지 마세요.
+최신 공식 출처(국세청, 법제처 등)의 정보를 우선시하세요.""",
             user_message=user_message
         )
 
