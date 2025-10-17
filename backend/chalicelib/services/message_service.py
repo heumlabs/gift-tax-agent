@@ -111,7 +111,7 @@ class MessageService:
 
             # Phase 3 추가: 마지막 assistant 메시지에서 collected_parameters 추출
             # find_all_by_session은 최신순(desc)으로 반환하므로, 첫 번째부터 순회
-            previous_collected = {}
+            previous_collected = None  # 첫 턴에서는 None → Intent 분류 실행
             for msg in previous_messages:  # 최신순으로 순회
                 if msg.role == "assistant" and msg.msg_metadata:
                     # collected_parameters가 존재하면 추출 (빈 딕셔너리도 포함)
