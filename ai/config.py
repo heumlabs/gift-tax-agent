@@ -40,7 +40,7 @@ class GeminiSettings:
     embedding_dimension: int = 768
     embedding_batch_size: int = 100
     # Law search settings
-    law_search_table: str = "law_sources_v3"
+    law_search_table: str = "law_sources"
     law_search_keyword_weight: float = 0.3
     law_search_embedding_weight: float = 0.7
 
