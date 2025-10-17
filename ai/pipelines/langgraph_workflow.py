@@ -23,6 +23,7 @@ from langgraph.graph import END, START, StateGraph
 
 from ai.clients.gemini import GeminiClient
 from ai.config import GeminiSettings
+from ai.exceptions import GeminiClientError
 from ai.prompts import DEFAULT_SYSTEM_PROMPT, INTENT_CLASSIFICATION_PROMPT
 from ai.prompts.clarifying import SYNTHESIS_PROMPT
 from ai.schemas.workflow_state import WorkflowState
@@ -177,9 +178,9 @@ async def intent_node(state: WorkflowState) -> dict:
             "intent": intent
         }
 
-    except Exception as e:
+    except GeminiClientError:
         # API 오류 시 안전하게 fallback
-        LOGGER.error(f"Intent classification error: {e}")
+        LOGGER.exception("Intent classification error")
         return {
             "intent": "general_info"
         }
@@ -251,8 +252,8 @@ async def clarifying_node(state: WorkflowState) -> dict:
 
         LOGGER.info(f"Intent re-classification: {detected_intent} (reasoning: {reasoning})")
 
-    except Exception as e:
-        LOGGER.error(f"Intent re-classification error: {e}. Response was: {response}. Defaulting to 'continue'")
+    except (json.JSONDecodeError, GeminiClientError):
+        LOGGER.exception("Failed to detect intent with LLM. Defaulting to 'continue'. Response was: %s", response)
         detected_intent = "continue"
 
     # Step 2: Intent에 따른 분기 처리
@@ -264,8 +265,8 @@ async def clarifying_node(state: WorkflowState) -> dict:
                 system_prompt="당신은 세금 계산을 도와주는 AI입니다. 사용자가 계산을 중단하려고 합니다. 자연스럽고 친절하게 응답하세요.",
                 user_message=user_message
             )
-        except Exception as e:
-            LOGGER.error(f"Failed to generate exit response: {e}")
+        except GeminiClientError:
+            LOGGER.exception("Failed to generate exit response")
             exit_response = "알겠습니다. 다른 궁금한 점이 있으시면 언제든 말씀해주세요."
 
         return {
@@ -283,8 +284,8 @@ async def clarifying_node(state: WorkflowState) -> dict:
                 system_prompt="당신은 세금 계산을 도와주는 AI입니다. 사용자가 증여세에서 상속세 계산으로 전환하려고 합니다. 자연스럽게 모드 전환을 안내하세요.",
                 user_message=user_message
             )
-        except Exception as e:
-            LOGGER.error(f"Failed to generate switch response: {e}")
+        except GeminiClientError:
+            LOGGER.exception("Failed to generate switch to inheritance response")
             switch_response = "상속세 계산으로 변경하겠습니다. 필요한 정보를 여쭤볼게요."
 
         return {
@@ -302,8 +303,8 @@ async def clarifying_node(state: WorkflowState) -> dict:
                 system_prompt="당신은 세금 계산을 도와주는 AI입니다. 사용자가 상속세에서 증여세 계산으로 전환하려고 합니다. 자연스럽게 모드 전환을 안내하세요.",
                 user_message=user_message
             )
-        except Exception as e:
-            LOGGER.error(f"Failed to generate switch response: {e}")
+        except GeminiClientError:
+            LOGGER.exception("Failed to generate switch to gift response")
             switch_response = "증여세 계산으로 변경하겠습니다. 필요한 정보를 여쭤볼게요."
 
         return {
@@ -370,7 +371,7 @@ async def calculation_node(state: WorkflowState) -> dict:
         dict: 업데이트할 상태
             - metadata.calculation: 계산 결과
     """
-    collected = state.get("collected_parameters", {})
+    collected = state.get("collected_parameters") or {}
 
     LOGGER.info("Starting calculation...")
 
@@ -429,7 +430,7 @@ async def synthesis_node(state: WorkflowState) -> dict:
             - response: 자연어 답변
     """
     calculation = state.get("metadata", {}).get("calculation")
-    collected = state.get("collected_parameters", {})
+    collected = state.get("collected_parameters") or {}
     intent = state.get("intent", "gift_tax")
 
     if not calculation:
@@ -480,8 +481,9 @@ async def response_node(state: WorkflowState) -> dict:
                 system_prompt=DEFAULT_SYSTEM_PROMPT,
                 user_message=user_message
             )
-        except Exception as e:
-            response = f"죄송합니다. 일시적인 오류가 발생했습니다: {str(e)}"
+        except GeminiClientError:
+            LOGGER.exception("Failed to generate general info response")
+            response = "죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
     else:
         response = "증여세 계산을 도와드리겠습니다."
 
