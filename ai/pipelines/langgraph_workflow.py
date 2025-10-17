@@ -25,13 +25,15 @@ from ai.clients.gemini import GeminiClient
 from ai.config import GeminiSettings
 from ai.exceptions import GeminiClientError
 from ai.prompts import DEFAULT_SYSTEM_PROMPT, INTENT_CLASSIFICATION_PROMPT
-from ai.prompts.clarifying import SYNTHESIS_PROMPT
+from ai.prompts.intent import CLARIFYING_INTENT_DETECTION_PROMPT
+from ai.prompts.synthesis import SYNTHESIS_PROMPT, get_synthesis_prompt_with_examples
 from ai.schemas.workflow_state import WorkflowState
 # exit_detection은 이제 LLM 기반으로 clarifying_node 내부에서 직접 처리
 from ai.utils.parameter_extraction import (
     check_missing_parameters,
     extract_parameters,
     generate_clarifying_question,
+    generate_clarifying_question_dynamic,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -97,6 +99,7 @@ async def _synthesize_response(calculation: dict, collected_parameters: dict, in
         settings = GeminiSettings.from_env()
         client = GeminiClient(settings)
 
+        # Few-shot 예제를 포함한 전체 프롬프트 사용
         prompt = SYNTHESIS_PROMPT.format(
             final_tax=calculation["final_tax"],
             gift_value=calculation.get("gift_value", collected_parameters.get("gift_property_value", 0)),
@@ -104,12 +107,27 @@ async def _synthesize_response(calculation: dict, collected_parameters: dict, in
             taxable_base=taxable_base,
             tax_bracket_info=tax_bracket_info,
             steps_formatted=steps_text,
-            warnings_formatted=warnings_text
+            warnings_formatted=warnings_text,
+            donor_relationship=collected_parameters.get("donor_relationship", "알 수 없음"),
+            gift_property_value=collected_parameters.get("gift_property_value", 0)
         )
 
+        # Few-shot 예제 포함
+        full_prompt = get_synthesis_prompt_with_examples()
+
         response = await client.generate_content(
-            system_prompt=prompt,
-            user_message=f"관계: {collected_parameters.get('donor_relationship', '알 수 없음')}, 금액: {collected_parameters.get('gift_property_value', 0):,}원"
+            system_prompt=full_prompt.format(
+                final_tax=calculation["final_tax"],
+                gift_value=calculation.get("gift_value", collected_parameters.get("gift_property_value", 0)),
+                total_deduction=calculation.get("total_deduction", 0),
+                taxable_base=taxable_base,
+                tax_bracket_info=tax_bracket_info,
+                steps_formatted=steps_text,
+                warnings_formatted=warnings_text,
+                donor_relationship=collected_parameters.get("donor_relationship", "알 수 없음"),
+                gift_property_value=collected_parameters.get("gift_property_value", 0)
+            ),
+            user_message="위 계산 결과를 자연스럽게 설명해주세요. 매번 다른 표현과 형식을 사용하세요."
         )
 
         LOGGER.info("Synthesis successful")
@@ -117,18 +135,16 @@ async def _synthesize_response(calculation: dict, collected_parameters: dict, in
 
     except Exception as e:
         LOGGER.error(f"Synthesis error: {e}")
-        # Fallback: 템플릿 기반 응답
-        fallback_response = f"""증여세 계산 결과입니다.
+        # Fallback: 템플릿 기반 응답 (자연스럽게)
+        fallback_response = f"""계산해보니 최종 세액은 **{calculation['final_tax']:,}원**이에요.
 
-**최종 납부 세액**: {calculation['final_tax']:,}원
-
-**계산 단계**:
+**계산 과정**:
 {steps_text}
 
 **주의사항**:
 {warnings_text}
 
-본 안내는 정보 제공용이며, 정확한 세액은 세무 전문가와 상담하시기 바랍니다."""
+본 안내는 간편 계산 결과예요. 정확한 세액은 세무사와 상담하시는 걸 추천드려요!"""
 
         return fallback_response
 
@@ -213,7 +229,6 @@ async def clarifying_node(state: WorkflowState) -> dict:
 
     # Step 1: Intent Re-classification (LLM 기반)
     # Clarifying 중에도 매 턴마다 사용자의 의도 변화를 감지
-    from ai.prompts.clarifying import CLARIFYING_INTENT_DETECTION_PROMPT
     import json
 
     settings = GeminiSettings.from_env()
@@ -343,8 +358,14 @@ async def clarifying_node(state: WorkflowState) -> dict:
 
     # Step 5: 질문 생성 또는 계산 진행
     if missing:
-        question = generate_clarifying_question(collected, missing)
-        LOGGER.info(f"Missing parameters: {missing}. Generating question.")
+        # 동적 질문 생성 (LLM 기반)
+        question = await generate_clarifying_question_dynamic(
+            collected_parameters=collected,
+            missing_parameters=missing,
+            user_message=user_message,
+            conversation_history=state.get("messages", [])
+        )
+        LOGGER.info(f"Missing parameters: {missing}. Generating dynamic question.")
         return {
             "collected_parameters": collected,
             "missing_parameters": missing,

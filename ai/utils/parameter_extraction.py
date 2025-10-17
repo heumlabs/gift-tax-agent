@@ -18,7 +18,11 @@ from typing import Dict, List, Optional
 from ai.clients.gemini import GeminiClient
 from ai.config import GeminiSettings
 from ai.exceptions import GeminiClientError
-from ai.prompts.clarifying import CLARIFYING_QUESTIONS, PARAMETER_EXTRACTION_PROMPT
+from ai.prompts.clarifying import (
+    CLARIFYING_QUESTIONS,
+    PARAMETER_EXTRACTION_PROMPT,
+    QUESTION_GENERATION_PROMPT,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -176,9 +180,11 @@ def generate_clarifying_question(
     missing_parameters: List[str]
 ) -> Optional[str]:
     """
-    Clarifying 질문 생성
+    Clarifying 질문 생성 (템플릿 기반)
 
     Tier 순서에 따라 다음 질문할 변수를 선택하고 템플릿을 반환합니다.
+
+    **Note**: 이 함수는 폴백용입니다. 실제로는 `generate_clarifying_question_dynamic()`을 사용하세요.
 
     Args:
         collected_parameters: 현재까지 수집된 파라미터
@@ -204,3 +210,72 @@ def generate_clarifying_question(
         next_param,
         f"{next_param}을(를) 알려주세요."
     )
+
+
+async def generate_clarifying_question_dynamic(
+    collected_parameters: Dict,
+    missing_parameters: List[str],
+    user_message: str,
+    conversation_history: Optional[List] = None
+) -> Optional[str]:
+    """
+    LLM을 사용한 동적 Clarifying 질문 생성
+
+    매번 다른 표현으로 질문을 생성하여 대화가 자연스럽게 흐르도록 합니다.
+    LLM 호출 실패 시 템플릿 기반 폴백을 사용합니다.
+
+    Args:
+        collected_parameters: 현재까지 수집된 파라미터
+        missing_parameters: 누락된 Tier 1 변수 목록
+        user_message: 사용자의 최근 메시지
+        conversation_history: 대화 히스토리 (향후 활용, 현재는 미사용)
+
+    Returns:
+        str | None: 질문 텍스트 또는 None (계산 가능)
+
+    Example:
+        >>> await generate_clarifying_question_dynamic(
+        ...     {"donor_relationship": "직계존속", "gift_property_value": 1000000000},
+        ...     ["gift_date"],
+        ...     "부모님께 10억 받았어요"
+        ... )
+        "10억원이시군요! 그럼 언제 증여받으셨는지도 알려주시겠어요?"
+    """
+    next_param = get_next_question(collected_parameters, missing_parameters)
+
+    if next_param is None:
+        return None  # 계산 가능
+
+    try:
+        # 가이드라인 가져오기 (템플릿에서)
+        param_guideline = CLARIFYING_QUESTIONS.get(next_param, "해당 정보를 수집하세요.")
+
+        # 수집 완료 정보 요약
+        collected_summary = ", ".join([
+            f"{k}: {v}" for k, v in collected_parameters.items() if v is not None
+        ]) or "없음"
+
+        # 프롬프트 포맷팅
+        prompt = QUESTION_GENERATION_PROMPT.format(
+            collected_params_summary=collected_summary,
+            next_param=next_param,
+            user_message=user_message,
+            param_guideline=param_guideline
+        )
+
+        # Gemini API 호출
+        settings = GeminiSettings.from_env()
+        client = GeminiClient(settings)
+
+        question = await client.generate_content(
+            system_prompt=prompt,
+            user_message="위 상황에 맞는 자연스러운 질문을 생성해주세요. 매번 다른 표현을 사용하세요."
+        )
+
+        LOGGER.info(f"Dynamic question generated for {next_param}: {question[:50]}...")
+        return question.strip()
+
+    except GeminiClientError as e:
+        # LLM 호출 실패 시 템플릿 폴백
+        LOGGER.warning(f"Dynamic question generation failed: {e}. Using template fallback.")
+        return generate_clarifying_question(collected_parameters, missing_parameters)
