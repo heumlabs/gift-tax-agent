@@ -804,10 +804,10 @@ async def _search_legal_db(user_message: str) -> str:
             result = await search_law(query, top_k=5)
             citations = [
                 {
-                    "full_reference": c.full_reference,
-                    "content": c.content,
+                    "full_reference": c["full_reference"],
+                    "content": c["content"],
                 }
-                for c in result.citations
+                for c in result["citations"]
             ]
             all_citations.extend(citations)
 
