@@ -46,7 +46,7 @@ class GeminiClient:
         """
         payload = {
             "content": {"parts": [{"text": text.strip()}]},
-            "output_dimensionality": self._settings.embedding_dimension,
+            "outputDimensionality": self._settings.embedding_dimension,
         }
 
         response = await self._post_embedding(payload, batch=False)
@@ -75,6 +75,9 @@ class GeminiClient:
             GeminiClientError: If the API call fails or response is invalid
             ValueError: If texts list exceeds maximum batch size
         """
+        if len(texts) == 0:
+            return []
+
         if len(texts) > self._settings.embedding_batch_size:
             raise ValueError(
                 f"Batch size {len(texts)} exceeds maximum {self._settings.embedding_batch_size}"
@@ -85,7 +88,7 @@ class GeminiClient:
                 {
                     "model": f"models/{self._settings.embedding_model}",
                     "content": {"parts": [{"text": text.strip()}]},
-                    "output_dimensionality": self._settings.embedding_dimension,
+                    "outputDimensionality": self._settings.embedding_dimension,
                 }
                 for text in texts
             ]

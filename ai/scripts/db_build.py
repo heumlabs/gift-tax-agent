@@ -98,14 +98,14 @@ class LawNode:
         return self.content
 
     def get_full_reference(self) -> str:
-        """전체 참조 경로 (법령명 포함)"""
-        path_parts = [self.law_name]
+        """전체 참조 경로 (법령명 포함, 루트→리프 순서)"""
+        keys: list[str] = []
         node = self
         while node:
             if self._is_structural_keyword(node.key):
-                path_parts.append(node.key)
+                keys.insert(0, node.key)  # 앞에 누적하여 루트→리프
             node = node.parent
-        return " ".join(reversed(path_parts))
+        return " ".join([self.law_name] + keys)
 
     @staticmethod
     def _is_structural_keyword(text: str) -> bool:
