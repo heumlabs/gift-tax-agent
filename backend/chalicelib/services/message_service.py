@@ -119,16 +119,24 @@ class MessageService:
                         previous_collected = msg.msg_metadata.get("collected_parameters", {})
                         break  # 가장 최근 assistant 메시지만 사용
 
+            # Phase 3 추가: 대화 히스토리를 LangGraph 형식으로 변환
+            # DB의 최신순을 역순으로 변경하여 시간순으로 정렬
+            conversation_messages = [
+                {"role": msg.role, "content": msg.content}
+                for msg in reversed(previous_messages)
+            ]
+
             # 1. 사용자 메시지 저장
             message_repo.create(
                 session_id=session_id, role="user", content=content, metadata=None
             )
 
-            # 2. AI 응답 생성 (Phase 3: session_id, previous_collected_parameters 추가)
+            # 2. AI 응답 생성 (Phase 3: session_id, previous_collected_parameters, messages 추가)
             ai_response = generate_assistant_message(
                 content=content,
                 session_id=session_id,
-                previous_collected_parameters=previous_collected
+                previous_collected_parameters=previous_collected,
+                messages=conversation_messages
             )
 
             # 3. AI 응답 메시지 저장
