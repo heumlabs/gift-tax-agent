@@ -778,6 +778,99 @@ async def synthesis_node(state: WorkflowState) -> dict:
     }
 
 
+async def _search_legal_db(user_message: str) -> str:
+    """
+    법령 DB(pgvector)에서 관련 법령 검색
+
+    Args:
+        user_message: 사용자 질문
+
+    Returns:
+        str: 포맷팅된 법령 근거 텍스트
+    """
+    try:
+        # 1. 법령 검색 키워드 추출
+        law_keywords = await _extract_law_keywords_from_question(user_message)
+        LOGGER.info(f"[Legal DB] Extracted keywords: {law_keywords}")
+
+        if not law_keywords:
+            return ""
+
+        # 2. 법령 검색 수행 (async 함수 직접 호출)
+        from ai.tools.law_search.searcher import search_law
+
+        all_citations = []
+        for query in law_keywords:
+            result = await search_law(query, top_k=5)
+            citations = [
+                {
+                    "full_reference": c.full_reference,
+                    "content": c.content,
+                }
+                for c in result.citations
+            ]
+            all_citations.extend(citations)
+
+        # 3. 법령 근거 포맷팅 (최대 10개)
+        if all_citations:
+            formatted = ["**관련 법령 근거**:"]
+            for cite in all_citations[:10]:
+                ref = cite.get("full_reference", "")
+                content = cite.get("content", "")
+                if len(content) > 150:
+                    content = content[:150] + "..."
+                formatted.append(f"- {ref}: {content}")
+
+            LOGGER.info(f"[Legal DB] Found {len(all_citations)} legal references")
+            return "\n".join(formatted)
+
+        return ""
+
+    except Exception as e:
+        LOGGER.error(f"[Legal DB] Search failed: {e}", exc_info=True)
+        return ""
+
+
+async def _search_web(user_message: str, client: GeminiClient) -> str:
+    """
+    Google Search를 사용하여 웹에서 최신 정보 검색
+
+    Args:
+        user_message: 사용자 질문
+        client: GeminiClient 인스턴스
+
+    Returns:
+        str: 웹 검색 결과 요약 + 출처
+    """
+    try:
+        # Google Search Grounding으로 웹 검색
+        LOGGER.info("[Web Search] Starting Google Search grounding")
+        grounding_response = await client.generate_content_with_search(
+            system_prompt="질문에 대한 핵심 정보를 간결하게 정리해주세요. 최신 정보와 공식 출처를 우선시하세요.",
+            user_message=user_message
+        )
+
+        web_info = grounding_response.text
+
+        # 출처 정보 추가
+        if grounding_response.grounding_metadata:
+            queries = grounding_response.grounding_metadata.web_search_queries
+            chunks = grounding_response.grounding_metadata.grounding_chunks
+
+            LOGGER.info(f"[Web Search] Queries: {queries}, Sources: {len(chunks)}")
+
+            # 상위 3개 출처 추가
+            if chunks:
+                sources = [f"{chunk.title} ({chunk.uri})" for chunk in chunks[:3]]
+                web_info += f"\n\n**웹 출처**: {', '.join(sources)}"
+
+        return web_info
+
+    except Exception as e:
+        LOGGER.error(f"[Web Search] Failed: {e}", exc_info=True)
+        return ""
+
+
 async def response_node(state: WorkflowState) -> dict:
     """
     Response 생성 노드 (일반 정보 또는 out_of_scope)
@@ -804,56 +897,40 @@ async def response_node(state: WorkflowState) -> dict:
     elif intent == "inheritance_tax":
         response = "상속세 관련 안내를 드리겠습니다."
     elif intent == "general_info":
-        # RAG를 활용한 일반 정보 응답 생성
+        # RAG + Web Search를 병렬로 활용한 일반 정보 응답 생성
         try:
             settings = GeminiSettings.from_env()
             client = GeminiClient(settings)
 
-            # 1. 법령 검색 키워드 추출
-            law_keywords = await _extract_law_keywords_from_question(user_message)
-            LOGGER.info(f"Extracted law keywords for general_info: {law_keywords}")
+            # 1. 병렬 실행: 법령 DB 검색 + 웹 검색
+            LOGGER.info("[Parallel Search] Starting legal DB + web search")
+            legal_info, web_info = await asyncio.gather(
+                _search_legal_db(user_message),
+                _search_web(user_message, client)
+            )
 
-            # 2. 법령 검색 수행
-            legal_references = ""
-            if law_keywords:
-                try:
-                    from ai.tools.law_search.wrapper import search_law_tool
+            # 2. 두 정보 조합
+            context_parts = []
+            if legal_info:
+                context_parts.append(legal_info)
+            if web_info:
+                context_parts.append(f"\n**최신 웹 정보**:\n{web_info}")
 
-                    all_citations = []
-                    for query in law_keywords:
-                        result = search_law_tool(query, top_k=5)  # 일반 QA는 쿼리당 5개
-                        citations = result.get("citations", [])
-                        all_citations.extend(citations)
+            combined_context = "\n\n".join(context_parts) if context_parts else ""
 
-                    # 법령 근거 포맷팅 (최대 10개 표시)
-                    if all_citations:
-                        formatted = ["**관련 법령 근거**:"]
-                        for cite in all_citations[:10]:
-                            ref = cite.get("full_reference", "")
-                            content = cite.get("content", "")
-                            if len(content) > 150:
-                                content = content[:150] + "..."
-                            formatted.append(f"- {ref}: {content}")
-                        legal_references = "\n".join(formatted)
-                        LOGGER.info(f"Found {len(all_citations)} legal references for general_info")
-
-                except Exception as e:
-                    LOGGER.warning(f"Law search failed in general_info: {e}")
-                    legal_references = ""
-
-            # 3. Gemini에게 법령 근거와 함께 전달
-            if legal_references:
+            # 3. 최종 답변 생성
+            if combined_context:
                 enhanced_prompt = f"""{DEFAULT_SYSTEM_PROMPT}
 
-아래 법령 근거를 참고하여 정확하고 상세하게 답변해주세요:
+아래 정보를 참고하여 정확하고 상세하게 답변해주세요:
 
-{legal_references}"""
+{combined_context}"""
                 response = await client.generate_content(
                     system_prompt=enhanced_prompt,
                     user_message=user_message
                 )
             else:
-                # 법령 근거 없이 기본 응답
+                # 검색 결과 없이 기본 응답
                 response = await client.generate_content(
                     system_prompt=DEFAULT_SYSTEM_PROMPT,
                     user_message=user_message

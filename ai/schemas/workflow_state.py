@@ -39,3 +39,6 @@ class WorkflowState(TypedDict, total=False):
 
     # 메타데이터 (calculation, citations 등)
     metadata: dict
+
+    # Web search 결과 (Google Search Grounding)
+    web_search_results: dict | None
