@@ -1,45 +1,57 @@
 """
-이탈 및 의도 변경 감지 유틸리티 (키워드 기반)
+이탈 및 의도 변경 감지 유틸리티 (LLM 기반)
 
-Clarifying 중 사용자가 다음과 같은 행동을 하는지 키워드로 판단합니다:
+Clarifying 중 사용자가 다음과 같은 행동을 하는지 LLM이 판단합니다:
 - 종료 요청: "그만", "취소", "아니야", "됐어"
 - 의도 변경: "상속세로 바꿀래", "증여세 알려줘"
 - 정상 진행: 파라미터 답변 (날짜, 금액, 관계 등)
-
-LLM 호출 제거하고 키워드 우선 처리로 변경 (비용 절감, 성능 향상)
 """
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Literal
+
+from ai.clients.gemini import GeminiClient, GeminiSettings
 
 LOGGER = logging.getLogger(__name__)
 
 
-# 종료 키워드
-EXIT_KEYWORDS = [
-    "그만", "취소", "안할래", "안 할래", "됐어", "됐습니다",
-    "종료", "그만할게", "그만할래", "그만둘게", "중단",
-    "안해", "안 해", "하지마", "하지 마"
-]
+CLARIFYING_INTENT_DETECTION_PROMPT = """당신은 사용자가 증여세/상속세 계산 중에 어떤 의도를 가지고 있는지 판단하는 AI입니다.
 
-# 상속세 전환 키워드
-INHERITANCE_KEYWORDS = [
-    "상속세", "상속", "부모님 돌아가", "사망", "유산"
-]
+**사용자 메시지를 분석하여 다음 중 하나로 분류하세요:**
 
-# 증여세 전환 키워드
-GIFT_KEYWORDS = [
-    "증여세", "증여"
-]
+1. **continue**: 정상적으로 계산을 진행 (날짜, 금액, 관계 등 정보 제공)
+   - 예: "2025년 5월", "100억원", "부모님", "직계존속"
+
+2. **exit**: 계산을 중단하거나 종료하려는 의도
+   - 예: "그만", "취소", "안할래", "됐어", "중단할게"
+
+3. **switch_to_inheritance**: 상속세 계산으로 전환하려는 의도
+   - 예: "상속세 알려줘", "상속세로 바꿔줘", "부모님 돌아가셔서"
+
+4. **switch_to_gift**: 증여세 계산으로 전환하려는 의도
+   - 예: "증여세 알려줘", "증여세로 바꿔줘", "다시 증여세"
+
+**출력 형식:**
+JSON 형식으로만 응답하세요. 다른 설명 없이 아래 형식만 출력하세요.
+
+{
+  "intent": "continue | exit | switch_to_inheritance | switch_to_gift",
+  "reasoning": "판단 근거를 1-2문장으로 설명"
+}
+
+**사용자 메시지:**
+{user_message}
+"""
 
 
-def detect_exit_intent_keyword(user_message: str) -> Literal["continue", "exit", "switch_to_inheritance", "switch_to_gift"]:
+async def detect_exit_intent(user_message: str) -> Literal["continue", "exit", "switch_to_inheritance", "switch_to_gift"]:
     """
-    Clarifying 중 이탈 또는 의도 변경 감지 (키워드 기반)
+    Clarifying 중 이탈 또는 의도 변경 감지 (LLM 기반)
 
-    키워드 우선 처리로 빠르고 정확하게 감지합니다.
+    LLM을 사용하여 사용자의 의도를 정확하게 파악합니다.
 
     Args:
         user_message: 사용자 입력 메시지
@@ -52,51 +64,52 @@ def detect_exit_intent_keyword(user_message: str) -> Literal["continue", "exit",
             - "switch_to_gift": 증여세로 변경
 
     Examples:
-        >>> detect_exit_intent_keyword("그만할래")
+        >>> await detect_exit_intent("그만할래")
         "exit"
 
-        >>> detect_exit_intent_keyword("상속세 알려줘")
+        >>> await detect_exit_intent("상속세 알려줘")
         "switch_to_inheritance"
 
-        >>> detect_exit_intent_keyword("6월이라고 했잖아")
-        "continue"
-
-        >>> detect_exit_intent_keyword("2025년 10월 15일")
+        >>> await detect_exit_intent("2025년 10월 15일")
         "continue"
     """
-    message_lower = user_message.lower().strip()
+    try:
+        settings = GeminiSettings.from_env()
+        client = GeminiClient(settings)
 
-    # 1. 종료 키워드 우선 체크
-    for keyword in EXIT_KEYWORDS:
-        if keyword in message_lower:
-            LOGGER.info(f"Exit keyword detected: {keyword}")
-            return "exit"
+        prompt = CLARIFYING_INTENT_DETECTION_PROMPT.format(user_message=user_message)
 
-    # 2. 상속세 전환 키워드 체크
-    # "증여세" 키워드가 없고 "상속세" 키워드가 있으면 상속세로 전환
-    has_inheritance = any(kw in message_lower for kw in INHERITANCE_KEYWORDS)
-    has_gift = any(kw in message_lower for kw in GIFT_KEYWORDS)
+        response = await client.generate_content(
+            system_prompt="",
+            user_message=prompt
+        )
 
-    if has_inheritance and not has_gift:
-        LOGGER.info("Switch to inheritance tax detected")
-        return "switch_to_inheritance"
+        # JSON 파싱
+        result = json.loads(response)
+        intent = result.get("intent", "continue")
+        reasoning = result.get("reasoning", "")
 
-    # 3. 증여세 전환 키워드 체크
-    # "상속세" 키워드가 없고 "증여세" 키워드가 있으면 증여세로 전환
-    if has_gift and not has_inheritance:
-        LOGGER.info("Switch to gift tax detected")
-        return "switch_to_gift"
+        LOGGER.info(f"LLM intent detection: {intent} (reasoning: {reasoning})")
 
-    # 4. 그 외 모두 정상 진행
-    LOGGER.info("Continue detected (no exit/switch keywords)")
-    return "continue"
+        # 유효한 값인지 확인
+        valid_intents = ["continue", "exit", "switch_to_inheritance", "switch_to_gift"]
+        if intent not in valid_intents:
+            LOGGER.warning(f"Invalid intent from LLM: {intent}. Defaulting to 'continue'")
+            return "continue"
+
+        return intent
+
+    except Exception as e:
+        LOGGER.error(f"Failed to detect intent with LLM: {e}. Defaulting to 'continue'")
+        return "continue"
 
 
-# 하위 호환성을 위해 기존 함수명 유지 (async 버전 제거)
-async def detect_exit_intent(user_message: str) -> Literal["continue", "exit", "switch_to_inheritance", "switch_to_gift"]:
+# 하위 호환성을 위해 동기 버전도 제공
+def detect_exit_intent_keyword(user_message: str) -> Literal["continue", "exit", "switch_to_inheritance", "switch_to_gift"]:
     """
-    하위 호환성을 위한 async wrapper
+    하위 호환성을 위한 동기 wrapper
 
-    실제로는 키워드 기반 동기 함수를 호출합니다.
+    실제로는 비동기 LLM 호출을 동기적으로 실행합니다.
     """
-    return detect_exit_intent_keyword(user_message)
+    import asyncio
+    return asyncio.run(detect_exit_intent(user_message))
