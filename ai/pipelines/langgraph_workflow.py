@@ -43,6 +43,157 @@ LOGGER = logging.getLogger(__name__)
 # 헬퍼 함수
 # ============================================================================
 
+def _should_include_legal_basis(collected_parameters: dict, breakdown: dict) -> bool:
+    """
+    법령 근거 포함 여부 판단.
+
+    특례 적용 시 법령 근거를 제공하여 신뢰도를 높입니다.
+
+    Args:
+        collected_parameters: 수집된 파라미터
+        breakdown: 계산 상세 정보
+
+    Returns:
+        bool: 법령 근거 포함 여부
+    """
+    # 세대생략 증여 할증
+    if breakdown.get("is_generation_skipping", False):
+        return True
+
+    # 혼인공제
+    if breakdown.get("marriage_deduction", 0) > 0:
+        return True
+
+    # 출산공제
+    if breakdown.get("childbirth_deduction", 0) > 0:
+        return True
+
+    # 미성년자 공제
+    if breakdown.get("is_minor_recipient", False):
+        return True
+
+    # 비거주자
+    if breakdown.get("is_non_resident", False):
+        return True
+
+    return False
+
+
+def _generate_law_search_queries(collected_parameters: dict, breakdown: dict) -> list[str]:
+    """
+    파라미터 기반 법령 검색 쿼리 생성.
+
+    Args:
+        collected_parameters: 수집된 파라미터
+        breakdown: 계산 상세 정보
+
+    Returns:
+        list[str]: 검색 쿼리 목록 (최대 3개)
+    """
+    queries = []
+
+    # 기본 공제 (관계별)
+    donor_relationship = collected_parameters.get("donor_relationship", "")
+    if donor_relationship:
+        queries.append(f"{donor_relationship} 증여재산 공제")
+
+    # 특례 관련 쿼리
+    if breakdown.get("is_generation_skipping", False):
+        queries.append("세대생략 증여 할증")
+
+    if breakdown.get("marriage_deduction", 0) > 0:
+        queries.append("혼인공제")
+
+    if breakdown.get("childbirth_deduction", 0) > 0:
+        queries.append("출산공제")
+
+    if breakdown.get("is_minor_recipient", False):
+        queries.append("미성년자 증여 공제")
+
+    # 최대 3개로 제한
+    return queries[:3]
+
+
+def _format_legal_references(citations: list[dict]) -> str:
+    """
+    법령 인용 포맷팅.
+
+    Args:
+        citations: 법령 검색 결과 (LawSearchResult.citations)
+
+    Returns:
+        str: 포맷된 법령 근거 (마크다운)
+    """
+    if not citations:
+        return ""
+
+    formatted = ["**법적 근거**:"]
+    for cite in citations[:20]:  # 최대 20개로 증가
+        ref = cite.get("full_reference", "")
+        content = cite.get("content", "")
+
+        # 내용이 너무 길면 200자로 제한 (더 많은 컨텍스트 제공)
+        if len(content) > 200:
+            content = content[:200] + "..."
+
+        formatted.append(f"- {ref}: {content}")
+
+    return "\n".join(formatted)
+
+
+async def _extract_law_keywords_from_question(user_message: str) -> list[str]:
+    """
+    일반 정보 질문에서 법령 검색 키워드 추출.
+
+    Args:
+        user_message: 사용자 질문
+
+    Returns:
+        list[str]: 법령 검색 키워드 (최대 3개)
+
+    Examples:
+        "증여세 공제가 뭐예요?" → ["증여재산공제"]
+        "혼인공제 받으려면?" → ["혼인공제"]
+        "주식 증여 세금" → ["주식 증여", "증여세율"]
+    """
+    # 주요 키워드 매핑
+    keyword_map = {
+        "공제": ["증여재산공제", "배우자 공제", "직계존속 공제"],
+        "혼인공제": ["혼인공제"],
+        "출산공제": ["출산공제"],
+        "세율": ["증여세율"],
+        "세대생략": ["세대생략 증여 할증"],
+        "할증": ["세대생략 증여 할증"],
+        "신고": ["증여세 신고"],
+        "기한": ["증여세 신고기한"],
+        "주식": ["주식 증여", "주식 평가"],
+        "부동산": ["부동산 증여"],
+        "평가": ["재산 평가"],
+        "비거주자": ["비거주자 증여"],
+        "미성년자": ["미성년자 공제"],
+    }
+
+    queries = []
+    message_lower = user_message.lower()
+
+    # 키워드 매칭
+    for keyword, search_terms in keyword_map.items():
+        if keyword in message_lower:
+            queries.extend(search_terms)
+
+    # 매칭 안되면 기본 쿼리
+    if not queries:
+        if "증여" in message_lower:
+            queries.append("증여세")
+        elif "상속" in message_lower:
+            queries.append("상속세")
+        else:
+            queries.append("증여세")  # 기본값
+
+    # 중복 제거 및 최대 3개
+    return list(dict.fromkeys(queries))[:3]
+
+
 def _get_tax_bracket_info(taxable_base: int) -> str:
     """
     과세표준에 해당하는 세율 구간 정보 반환
@@ -71,7 +222,7 @@ def _get_tax_bracket_info(taxable_base: int) -> str:
 
 async def _synthesize_response(calculation: dict, collected_parameters: dict, intent: str) -> str:
     """
-    계산 결과를 자연어로 변환
+    계산 결과를 자연어로 변환 (V2 - 개선판)
 
     Args:
         calculation: 계산 결과
@@ -81,53 +232,100 @@ async def _synthesize_response(calculation: dict, collected_parameters: dict, in
     Returns:
         str: 자연어 답변
     """
-    # 1. steps 포맷팅
+    # 1. 포맷된 금액 추출
+    formatted = calculation.get("formatted_amounts", {})
+
+    # 2. 세율 구간 정보 (계산 결과에서 직접 가져오기)
+    bracket_info = calculation.get("tax_bracket_info", {})
+
+    # 3. 계산 상세 정보
+    breakdown = calculation.get("calculation_breakdown", {})
+
+    # 4. steps 포맷팅 (한글 금액 사용)
     steps_text = "\n".join([
         f"{s['step']}. {s['description']}: {s['value']:,}원 ({s.get('detail', '')})"
         for s in calculation.get("steps", [])
     ])
 
-    # 2. warnings 포맷팅
+    # 5. warnings 포맷팅
     warnings_text = "\n".join([f"- {w}" for w in calculation.get("warnings", [])])
 
-    # 3. 세율 구간 정보 생성
-    taxable_base = calculation.get("taxable_base", 0)
-    tax_bracket_info = _get_tax_bracket_info(taxable_base)
+    # 6. Tier 2/3 누락 확인 (추가 확인사항)
+    optional_params_notice = _check_optional_parameters(collected_parameters, breakdown)
 
-    # 4. Gemini API로 자연어 설명 생성
+    # 7. 법령 근거 검색 (선택적)
+    legal_references = ""
+    if _should_include_legal_basis(collected_parameters, breakdown):
+        try:
+            from ai.tools.law_search.wrapper import search_law_tool
+
+            # 검색 쿼리 생성
+            queries = _generate_law_search_queries(collected_parameters, breakdown)
+            LOGGER.info(f"Searching law for queries: {queries}")
+
+            # 각 쿼리별로 검색 (비동기 처리 가능하지만 단순화를 위해 순차 처리)
+            all_citations = []
+            for query in queries:
+                result = search_law_tool(query, top_k=10)  # 쿼리당 10개로 증가 (3개 쿼리 × 10개 = 최대 30개)
+                citations = result.get("citations", [])
+                all_citations.extend(citations)
+
+            # 법령 근거 포맷팅
+            legal_references = _format_legal_references(all_citations)
+            LOGGER.info(f"Found {len(all_citations)} legal references")
+
+        except Exception as e:
+            LOGGER.warning(f"Law search failed: {e}. Continuing without legal references.")
+            legal_references = ""
+
+    # 8. Gemini API로 자연어 설명 생성
     try:
         settings = GeminiSettings.from_env()
         client = GeminiClient(settings)
 
-        # Few-shot 예제를 포함한 전체 프롬프트 사용
-        prompt = SYNTHESIS_PROMPT.format(
-            final_tax=calculation["final_tax"],
-            gift_value=calculation.get("gift_value", collected_parameters.get("gift_property_value", 0)),
-            total_deduction=calculation.get("total_deduction", 0),
-            taxable_base=taxable_base,
-            tax_bracket_info=tax_bracket_info,
-            steps_formatted=steps_text,
-            warnings_formatted=warnings_text,
-            donor_relationship=collected_parameters.get("donor_relationship", "알 수 없음"),
-            gift_property_value=collected_parameters.get("gift_property_value", 0)
-        )
+        # 프롬프트 데이터 준비 (RAG 통합 + 포맷된 금액)
+        import json
+        calculation_data = {
+            "final_tax": calculation["final_tax"],
+            "formatted_final_tax": formatted.get("final_tax", f"{calculation['final_tax']:,}원"),
+            "gift_value": calculation.get("gift_value", 0),
+            "formatted_gift_value": formatted.get("gift_value", ""),
+            "total_deduction": calculation.get("total_deduction", 0),
+            "formatted_total_deduction": formatted.get("total_deduction", ""),
+            "taxable_base": calculation.get("taxable_base", 0),
+            "formatted_taxable_base": formatted.get("taxable_base", ""),
+            "calculated_tax": calculation.get("calculated_tax", 0),
+            "formatted_calculated_tax": formatted.get("calculated_tax", ""),
+            "surtax": calculation.get("surtax", 0),
+            "formatted_surtax": formatted.get("surtax", ""),
+            "tax_bracket": bracket_info.get("description", ""),
+            "bracket_rate": bracket_info.get("rate", 0),
+            "breakdown": breakdown,
+            "warnings": calculation.get("warnings", []),
+            "optional_params_notice": optional_params_notice,
+            "legal_references": legal_references,  # RAG 법령 근거
+        }
 
-        # Few-shot 예제 포함
+        # Few-shot 예제를 포함한 전체 프롬프트 사용
         full_prompt = get_synthesis_prompt_with_examples()
 
         response = await client.generate_content(
             system_prompt=full_prompt.format(
-                final_tax=calculation["final_tax"],
-                gift_value=calculation.get("gift_value", collected_parameters.get("gift_property_value", 0)),
-                total_deduction=calculation.get("total_deduction", 0),
-                taxable_base=taxable_base,
-                tax_bracket_info=tax_bracket_info,
+                final_tax=calculation_data["final_tax"],
+                gift_value=calculation_data["gift_value"],
+                total_deduction=calculation_data["total_deduction"],
+                taxable_base=calculation_data["taxable_base"],
+                tax_bracket_info=bracket_info.get("description", _get_tax_bracket_info(calculation_data["taxable_base"])),
                 steps_formatted=steps_text,
                 warnings_formatted=warnings_text,
                 donor_relationship=collected_parameters.get("donor_relationship", "알 수 없음"),
-                gift_property_value=collected_parameters.get("gift_property_value", 0)
+                gift_property_value=collected_parameters.get("gift_property_value", 0),
+                legal_references=legal_references  # RAG 법령 근거 추가
             ),
-            user_message="위 계산 결과를 자연스럽게 설명해주세요. 매번 다른 표현과 형식을 사용하세요."
+            user_message=f"""위 계산 결과를 자연스럽게 설명해주세요. 매번 다른 표현과 형식을 사용하세요.
+
+추가 컨텍스트:
+{json.dumps(calculation_data, ensure_ascii=False, indent=2)}"""
         )
 
         LOGGER.info("Synthesis successful")
@@ -135,18 +333,130 @@ async def _synthesize_response(calculation: dict, collected_parameters: dict, in
 
     except Exception as e:
         LOGGER.error(f"Synthesis error: {e}")
-        # Fallback: 템플릿 기반 응답 (자연스럽게)
-        fallback_response = f"""계산해보니 최종 세액은 **{calculation['final_tax']:,}원**이에요.
-
-**계산 과정**:
-{steps_text}
-
-**주의사항**:
-{warnings_text}
-
-본 안내는 간편 계산 결과예요. 정확한 세액은 세무사와 상담하시는 걸 추천드려요!"""
-
+        # Fallback: 개선된 템플릿 기반 응답 (한글 포맷 + RAG)
+        fallback_response = _generate_fallback_response(
+            calculation, collected_parameters, formatted, breakdown, bracket_info, legal_references
+        )
         return fallback_response
+
+
+def _check_optional_parameters(collected_parameters: dict, breakdown: dict) -> str:
+    """
+    Tier 2/3 파라미터 누락 확인 및 안내 메시지 생성.
+
+    Args:
+        collected_parameters: 수집된 파라미터
+        breakdown: 계산 상세 정보
+
+    Returns:
+        str: 추가 확인사항 메시지 (없으면 빈 문자열)
+    """
+    missing_items = []
+
+    # Tier 2/3 기본값 사용 여부 확인
+    if not breakdown.get("is_generation_skipping", False) and collected_parameters.get("donor_relationship") in ["직계존속", "직계비속"]:
+        # 세대생략 여부를 확인하지 않은 경우
+        missing_items.append("세대생략 증여 여부")
+
+    if breakdown.get("marriage_deduction", 0) == 0:
+        missing_items.append("혼인공제")
+
+    if breakdown.get("childbirth_deduction", 0) == 0:
+        missing_items.append("출산공제")
+
+    if collected_parameters.get("secured_debt", 0) == 0:
+        missing_items.append("담보채무")
+
+    if missing_items:
+        return f"참고로, {', '.join(missing_items)} 등을 고려하면 세액이 달라질 수 있습니다."
+
+    return ""
+
+
+def _generate_fallback_response(
+    calculation: dict,
+    collected_parameters: dict,
+    formatted: dict,
+    breakdown: dict,
+    bracket_info: dict,
+    legal_references: str = ""
+) -> str:
+    """
+    Gemini API 실패 시 사용할 개선된 Fallback 응답 생성.
+
+    Args:
+        calculation: 계산 결과
+        collected_parameters: 수집된 파라미터
+        formatted: 한글 포맷 금액들
+        breakdown: 계산 상세 정보
+        bracket_info: 세율 구간 정보
+        legal_references: 법령 근거 (있는 경우)
+
+    Returns:
+        str: Fallback 응답
+    """
+    relationship = collected_parameters.get("donor_relationship", "알 수 없음")
+    gift_value = formatted.get("gift_value", f"{calculation.get('gift_value', 0):,}원")
+    total_deduction = formatted.get("total_deduction", f"{calculation.get('total_deduction', 0):,}원")
+    taxable_base = formatted.get("taxable_base", f"{calculation.get('taxable_base', 0):,}원")
+    final_tax = formatted.get("final_tax", f"{calculation.get('final_tax', 0):,}원")
+
+    # 관계별 설명
+    relationship_desc = {
+        "배우자": "배우자로부터",
+        "직계존속": "부모님(직계존속)으로부터",
+        "직계비속": "자녀(직계비속)에게",
+        "기타친족": "친족으로부터",
+    }.get(relationship, f"{relationship}로부터")
+
+    # 응답 구조
+    response_parts = [
+        f"## 증여세 계산 결과\n",
+        f"{relationship_desc} {gift_value} 증여받으신 경우입니다.\n",
+        f"**최종 납부 세액: {final_tax}**\n",
+        f"\n### 상세 계산\n",
+        f"- 증여재산가액: {gift_value}",
+        f"- 공제액: {total_deduction}",
+        f"- 과세표준: {taxable_base}",
+    ]
+
+    # 세율 구간 정보
+    if bracket_info.get("description"):
+        response_parts.append(f"- {bracket_info['description']}")
+
+    # 산출세액
+    calculated_tax = formatted.get("calculated_tax", "")
+    if calculated_tax:
+        response_parts.append(f"- 산출세액: {calculated_tax}")
+
+    # 할증 세액
+    if calculation.get("surtax", 0) > 0:
+        surtax = formatted.get("surtax", "")
+        response_parts.append(f"- 세대생략 할증 30%: {surtax}")
+
+    response_parts.append(f"- **최종 납부 세액: {final_tax}**")
+
+    # 추가 확인사항
+    optional_notice = _check_optional_parameters(collected_parameters, breakdown)
+    if optional_notice:
+        response_parts.append(f"\n### 추가 확인사항\n{optional_notice}")
+
+    # 신고 기한
+    warnings = calculation.get("warnings", [])
+    if warnings:
+        response_parts.append(f"\n### 신고 기한")
+        for warning in warnings:
+            response_parts.append(f"- {warning}")
+
+    # 법령 근거 (있는 경우)
+    if legal_references:
+        response_parts.append(f"\n{legal_references}")
+
+    # 참고사항
+    response_parts.append("\n### 참고사항")
+    response_parts.append("본 안내는 간편 계산 결과이며, 정확한 세액은 세무 전문가와 상담하시기 바랍니다.")
+
+    return "\n".join(response_parts)
 
 
 # ============================================================================
@@ -494,14 +804,61 @@ async def response_node(state: WorkflowState) -> dict:
     elif intent == "inheritance_tax":
         response = "상속세 관련 안내를 드리겠습니다."
     elif intent == "general_info":
-        # Gemini API 호출
+        # RAG를 활용한 일반 정보 응답 생성
         try:
             settings = GeminiSettings.from_env()
             client = GeminiClient(settings)
-            response = await client.generate_content(
-                system_prompt=DEFAULT_SYSTEM_PROMPT,
-                user_message=user_message
-            )
+
+            # 1. 법령 검색 키워드 추출
+            law_keywords = await _extract_law_keywords_from_question(user_message)
+            LOGGER.info(f"Extracted law keywords for general_info: {law_keywords}")
+
+            # 2. 법령 검색 수행
+            legal_references = ""
+            if law_keywords:
+                try:
+                    from ai.tools.law_search.wrapper import search_law_tool
+
+                    all_citations = []
+                    for query in law_keywords:
+                        result = search_law_tool(query, top_k=5)  # 일반 QA는 쿼리당 5개
+                        citations = result.get("citations", [])
+                        all_citations.extend(citations)
+
+                    # 법령 근거 포맷팅 (최대 10개 표시)
+                    if all_citations:
+                        formatted = ["**관련 법령 근거**:"]
+                        for cite in all_citations[:10]:
+                            ref = cite.get("full_reference", "")
+                            content = cite.get("content", "")
+                            if len(content) > 150:
+                                content = content[:150] + "..."
+                            formatted.append(f"- {ref}: {content}")
+                        legal_references = "\n".join(formatted)
+                        LOGGER.info(f"Found {len(all_citations)} legal references for general_info")
+
+                except Exception as e:
+                    LOGGER.warning(f"Law search failed in general_info: {e}")
+                    legal_references = ""
+
+            # 3. Gemini에게 법령 근거와 함께 전달
+            if legal_references:
+                enhanced_prompt = f"""{DEFAULT_SYSTEM_PROMPT}
+
+아래 법령 근거를 참고하여 정확하고 상세하게 답변해주세요:
+
+{legal_references}"""
+                response = await client.generate_content(
+                    system_prompt=enhanced_prompt,
+                    user_message=user_message
+                )
+            else:
+                # 법령 근거 없이 기본 응답
+                response = await client.generate_content(
+                    system_prompt=DEFAULT_SYSTEM_PROMPT,
+                    user_message=user_message
+                )
+
         except GeminiClientError:
             LOGGER.exception("Failed to generate general info response")
             response = "죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요."

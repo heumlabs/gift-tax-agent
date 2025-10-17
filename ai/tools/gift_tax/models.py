@@ -58,6 +58,7 @@ class CalculationStep(TypedDict):
 class GiftTaxSimpleOutput(TypedDict):
     """계산 결과 출력 (LangGraph State에 병합 가능)."""
 
+    # 기존 필드
     steps: list[CalculationStep]
     gift_value: int
     total_deduction: int
@@ -66,3 +67,8 @@ class GiftTaxSimpleOutput(TypedDict):
     surtax: int
     final_tax: int
     warnings: list[str]
+
+    # 새 필드 (Synthesis 개선용)
+    calculation_breakdown: dict  # 상세 계산 정보 (공제 세부내역 등)
+    tax_bracket_info: dict  # 세율 구간 정보
+    formatted_amounts: dict  # 한글 포맷 금액들

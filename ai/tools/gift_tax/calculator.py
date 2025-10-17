@@ -101,6 +101,28 @@ def calculate_gift_tax_simple(
             is_generation_skipping=is_generation_skipping,
             current_date=current_date or date.today(),
         )
+
+        # 새 필드: calculation_breakdown, tax_bracket_info, formatted_amounts
+        calculation_breakdown = {
+            "base_deduction": base_deduction,
+            "marriage_deduction": marriage_deduction,
+            "childbirth_deduction": childbirth_deduction,
+            "donor_relationship": donor_relationship,
+            "is_minor_recipient": is_minor_recipient,
+            "is_non_resident": is_non_resident,
+        }
+
+        tax_bracket_info = get_tax_bracket_info(0)
+
+        formatted_amounts = {
+            "gift_value": format_amount(gift_value),
+            "total_deduction": format_amount(total_deduction),
+            "taxable_base": "0원",
+            "calculated_tax": "0원",
+            "surtax": "0원",
+            "final_tax": "0원",
+        }
+
         return {
             "steps": steps,
             "gift_value": gift_value,
@@ -110,6 +132,9 @@ def calculate_gift_tax_simple(
             "surtax": 0,
             "final_tax": 0,
             "warnings": warnings,
+            "calculation_breakdown": calculation_breakdown,
+            "tax_bracket_info": tax_bracket_info,
+            "formatted_amounts": formatted_amounts,
         }
 
     # ④ 산출세액
@@ -159,6 +184,28 @@ def calculate_gift_tax_simple(
         current_date=current_date or date.today(),
     )
 
+    # 새 필드: calculation_breakdown, tax_bracket_info, formatted_amounts
+    calculation_breakdown = {
+        "base_deduction": base_deduction,
+        "marriage_deduction": marriage_deduction,
+        "childbirth_deduction": childbirth_deduction,
+        "donor_relationship": donor_relationship,
+        "is_minor_recipient": is_minor_recipient,
+        "is_non_resident": is_non_resident,
+        "is_generation_skipping": is_generation_skipping,
+    }
+
+    tax_bracket_info = get_tax_bracket_info(max(taxable_base, 0))
+
+    formatted_amounts = {
+        "gift_value": format_amount(gift_value),
+        "total_deduction": format_amount(total_deduction),
+        "taxable_base": format_amount(max(taxable_base, 0)),
+        "calculated_tax": format_amount(calculated_tax),
+        "surtax": format_amount(surtax),
+        "final_tax": format_amount(max(final_tax, 0)),
+    }
+
     return {
         "steps": steps,
         "gift_value": gift_value,
@@ -168,7 +215,150 @@ def calculate_gift_tax_simple(
         "surtax": surtax,
         "final_tax": max(final_tax, 0),
         "warnings": warnings,
+        "calculation_breakdown": calculation_breakdown,
+        "tax_bracket_info": tax_bracket_info,
+        "formatted_amounts": formatted_amounts,
     }
+
+
+def format_amount(amount: int) -> str:
+    """
+    금액을 읽기 좋은 한글 형식으로 변환.
+
+    Args:
+        amount: 금액 (원)
+
+    Returns:
+        str: 한글 포맷 금액
+
+    Examples:
+        >>> format_amount(1_000_000_000)
+        '10억원'
+        >>> format_amount(950_000_000)
+        '9억 5,000만원'
+        >>> format_amount(50_000_000)
+        '5,000만원'
+        >>> format_amount(150_000_000)
+        '1억 5,000만원'
+        >>> format_amount(0)
+        '0원'
+    """
+    if amount == 0:
+        return "0원"
+
+    eok = amount // 100_000_000  # 억 단위
+    remainder = amount % 100_000_000
+    man = remainder // 10_000  # 만 단위
+
+    parts = []
+    if eok > 0:
+        parts.append(f"{eok}억")
+    if man > 0:
+        parts.append(f"{man:,}만원")
+    elif eok > 0:
+        # 정확히 억 단위일 때
+        return f"{eok}억원"
+
+    return " ".join(parts) if parts else "0원"
+
+
+def get_tax_bracket_info(taxable_base: int) -> dict:
+    """
+    과세표준에 해당하는 세율 구간 정보 반환.
+
+    Args:
+        taxable_base: 과세표준
+
+    Returns:
+        dict: 세율 구간 정보
+            - bracket: 구간 설명 (예: "10억 초과 30억 이하")
+            - rate: 세율 (%)
+            - progressive_deduction: 누진공제액
+            - description: 상세 설명
+
+    Examples:
+        >>> info = get_tax_bracket_info(1_500_000_000)
+        >>> info['bracket']
+        '10억 초과 30억 이하'
+        >>> info['rate']
+        40
+    """
+    if taxable_base == 0:
+        return {
+            "bracket": "과세표준 0원",
+            "rate": 0,
+            "progressive_deduction": 0,
+            "description": "과세표준 0원 (세금 없음)",
+        }
+
+    for bracket in TAX_BRACKETS:
+        if taxable_base <= bracket["limit"]:
+            rate_percent = int(bracket["rate"] * 100)
+
+            # 구간 설명 생성
+            if bracket["limit"] == 100_000_000:
+                bracket_desc = "1억 이하"
+            elif bracket["limit"] == 500_000_000:
+                bracket_desc = "1억 초과 5억 이하"
+            elif bracket["limit"] == 1_000_000_000:
+                bracket_desc = "5억 초과 10억 이하"
+            elif bracket["limit"] == 3_000_000_000:
+                bracket_desc = "10억 초과 30억 이하"
+            else:
+                bracket_desc = "30억 초과"
+
+            return {
+                "bracket": bracket_desc,
+                "rate": rate_percent,
+                "progressive_deduction": bracket["progressive_deduction"],
+                "description": f"{bracket_desc} 구간으로 {rate_percent}% 세율 적용",
+            }
+
+    # Fallback (마지막 구간)
+    return {
+        "bracket": "30억 초과",
+        "rate": 50,
+        "progressive_deduction": 460_000_000,
+        "description": "30억 초과 구간으로 50% 세율 적용",
+    }
+
+
+def get_all_tax_brackets() -> list[dict]:
+    """
+    전체 세율표 반환 (사용자 안내용).
+
+    Returns:
+        list[dict]: 세율표 목록
+            각 항목: {limit_desc, rate_percent, progressive_deduction_formatted}
+
+    Example:
+        >>> brackets = get_all_tax_brackets()
+        >>> brackets[0]
+        {'limit_desc': '1억 이하', 'rate_percent': '10%', 'progressive_deduction_formatted': '0원'}
+    """
+    bracket_descriptions = [
+        ("1억 이하", 100_000_000),
+        ("1억 초과 5억 이하", 500_000_000),
+        ("5억 초과 10억 이하", 1_000_000_000),
+        ("10억 초과 30억 이하", 3_000_000_000),
+        ("30억 초과", 10_000_000_000),
+    ]
+
+    result = []
+    for desc, limit in bracket_descriptions:
+        for bracket in TAX_BRACKETS:
+            if bracket["limit"] == limit or (limit > TAX_BRACKETS[-1]["limit"] and bracket == TAX_BRACKETS[-1]):
+                rate_percent = int(bracket["rate"] * 100)
+                progressive_deduction = bracket["progressive_deduction"]
+
+                result.append({
+                    "limit_desc": desc,
+                    "rate_percent": f"{rate_percent}%",
+                    "progressive_deduction_formatted": format_amount(progressive_deduction),
+                })
+                break
+
+    return result
 
 
 def get_base_deduction(donor_relationship: str, is_minor: bool, is_non_resident: bool) -> int:
