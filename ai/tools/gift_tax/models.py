@@ -39,13 +39,8 @@ class GiftTaxSimpleInput(BaseModel):
     @field_validator("gift_date")
     @classmethod
     def validate_gift_date(cls, v: date) -> date:
-        """
-        증여일 검증 (완화됨).
-
-        미래 날짜도 허용하되, calculator에서 경고 메시지를 추가합니다.
-        현재 세법 기준으로 계산됨을 안내합니다.
-        """
-        # 미래 날짜도 허용 (경고는 calculator의 generate_warnings에서 처리)
+        """증여일 검증 (미래 날짜도 허용, 현재 세법 기준 계산)."""
+        # 미래 날짜도 허용 - 현재 세법으로 계산해주되 경고 메시지로 안내
         return v
 
 
