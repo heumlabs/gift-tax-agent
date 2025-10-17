@@ -431,11 +431,23 @@ def generate_warnings(gift_date: date, is_generation_skipping: bool, current_dat
     """
     warnings = []
 
+    # 미래 날짜 증여 체크
+    if gift_date > current_date:
+        warnings.append(
+            f"💡 미래({gift_date.strftime('%Y년 %m월 %d일')}) 증여 예정이시군요. "
+            f"현재 세법 기준으로 계산되었으며, 실제 증여 시점의 세법은 변경될 수 있습니다."
+        )
+
     # 신고 기한
     filing_deadline = gift_date + timedelta(days=90)
 
-    # 기한 경과 여부 확인
-    if current_date > filing_deadline:
+    # 기한 경과 여부 확인 (미래 날짜는 기한 안내만)
+    if gift_date > current_date:
+        # 미래 증여 - 예정 신고기한 안내
+        warnings.append(
+            f"증여 후 3개월 이내({filing_deadline.strftime('%Y년 %m월 %d일')}까지) 신고하셔야 합니다."
+        )
+    elif current_date > filing_deadline:
         # 기한 경과 - 경고 메시지
         overdue_days = (current_date - filing_deadline).days
         warnings.append(
