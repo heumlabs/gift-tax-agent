@@ -7,6 +7,7 @@ import httpx
 
 from ai.config import GeminiSettings
 from ai.exceptions import GeminiClientError
+from ai.models.grounding import GroundingMetadata, GroundingResponse
 
 LOGGER = logging.getLogger(__name__)
 
@@ -30,6 +31,42 @@ class GeminiClient:
 
         response = await self._post(payload)
         return self._extract_text(response)
+
+    async def generate_content_with_search(self, *, system_prompt: str, user_message: str) -> GroundingResponse:
+        """
+        Generate content with Google Search grounding enabled.
+
+        Args:
+            system_prompt: System instruction
+            user_message: User message
+
+        Returns:
+            GroundingResponse: Response with text and grounding metadata
+
+        Example:
+            >>> response = await client.generate_content_with_search(
+            ...     system_prompt="You are a helpful assistant.",
+            ...     user_message="Who won Euro 2024?"
+            ... )
+            >>> print(response.text)
+            >>> print(response.grounding_metadata.web_search_queries)
+        """
+        payload = {
+            "system_instruction": {"parts": [{"text": system_prompt.strip()}]},
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [{"text": user_message.strip()}],
+                }
+            ],
+            "tools": [{"google_search": {}}],  # Enable Google Search grounding
+        }
+
+        response = await self._post(payload)
+        text = self._extract_text(response)
+        metadata = self._extract_grounding_metadata(response)
+
+        return GroundingResponse(text=text, grounding_metadata=metadata)
 
     async def generate_embedding(self, text: str) -> list[float]:
         """
@@ -168,6 +205,19 @@ class GeminiClient:
                     return text
 
         raise GeminiClientError(status_code=500, message="Gemini candidate missing text field.", payload=response_json)
+
+    @staticmethod
+    def _extract_grounding_metadata(response_json: Dict[str, Any]) -> GroundingMetadata | None:
+        """Extract grounding metadata from response (if present)."""
+        candidates: List[Dict[str, Any]] = response_json.get("candidates") or []
+        if not candidates:
+            return None
+
+        metadata_dict = candidates[0].get("groundingMetadata")
+        if not metadata_dict:
+            return None
+
+        return GroundingMetadata.from_dict(metadata_dict)
 
     @staticmethod
     def _extract_embedding(response_json: Dict[str, Any]) -> list[float]:
