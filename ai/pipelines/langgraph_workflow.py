@@ -543,9 +543,14 @@ def should_calculate(state: WorkflowState) -> str:
     계산 가능 여부 판단
 
     Returns:
-        "response": 질문 필요 (missing_parameters 있음 또는 이탈)
+        "response": 질문 필요 (missing_parameters 있음 또는 이탈) 또는 일반 정보 응답
         "calculation": 계산 가능 (필수 변수 모두 수집)
     """
+    # 의도에 따라 즉시 응답 경로로 분기
+    intent = state.get("intent")
+    if intent in ("general_info", "out_of_scope"):
+        return "response"
+
     missing = state.get("missing_parameters", [])
     response = state.get("response")
 
