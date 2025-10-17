@@ -141,6 +141,59 @@ def _format_legal_references(citations: list[dict]) -> str:
     return "\n".join(formatted)
 
 
+async def _extract_law_keywords_from_question(user_message: str) -> list[str]:
+    """
+    일반 정보 질문에서 법령 검색 키워드 추출.
+
+    Args:
+        user_message: 사용자 질문
+
+    Returns:
+        list[str]: 법령 검색 키워드 (최대 3개)
+
+    Examples:
+        "증여세 공제가 뭐예요?" → ["증여재산공제"]
+        "혼인공제 받으려면?" → ["혼인공제"]
+        "주식 증여 세금" → ["주식 증여", "증여세율"]
+    """
+    # 주요 키워드 매핑
+    keyword_map = {
+        "공제": ["증여재산공제", "배우자 공제", "직계존속 공제"],
+        "혼인공제": ["혼인공제"],
+        "출산공제": ["출산공제"],
+        "세율": ["증여세율"],
+        "세대생략": ["세대생략 증여 할증"],
+        "할증": ["세대생략 증여 할증"],
+        "신고": ["증여세 신고"],
+        "기한": ["증여세 신고기한"],
+        "주식": ["주식 증여", "주식 평가"],
+        "부동산": ["부동산 증여"],
+        "평가": ["재산 평가"],
+        "비거주자": ["비거주자 증여"],
+        "미성년자": ["미성년자 공제"],
+    }
+
+    queries = []
+    message_lower = user_message.lower()
+
+    # 키워드 매칭
+    for keyword, search_terms in keyword_map.items():
+        if keyword in message_lower:
+            queries.extend(search_terms)
+
+    # 매칭 안되면 기본 쿼리
+    if not queries:
+        if "증여" in message_lower:
+            queries.append("증여세")
+        elif "상속" in message_lower:
+            queries.append("상속세")
+        else:
+            queries.append("증여세")  # 기본값
+
+    # 중복 제거 및 최대 3개
+    return list(dict.fromkeys(queries))[:3]
+
+
 def _get_tax_bracket_info(taxable_base: int) -> str:
     """
     과세표준에 해당하는 세율 구간 정보 반환
@@ -751,14 +804,61 @@ async def response_node(state: WorkflowState) -> dict:
     elif intent == "inheritance_tax":
         response = "상속세 관련 안내를 드리겠습니다."
     elif intent == "general_info":
-        # Gemini API 호출
+        # RAG를 활용한 일반 정보 응답 생성
         try:
             settings = GeminiSettings.from_env()
             client = GeminiClient(settings)
-            response = await client.generate_content(
-                system_prompt=DEFAULT_SYSTEM_PROMPT,
-                user_message=user_message
-            )
+
+            # 1. 법령 검색 키워드 추출
+            law_keywords = await _extract_law_keywords_from_question(user_message)
+            LOGGER.info(f"Extracted law keywords for general_info: {law_keywords}")
+
+            # 2. 법령 검색 수행
+            legal_references = ""
+            if law_keywords:
+                try:
+                    from ai.tools.law_search.wrapper import search_law_tool
+
+                    all_citations = []
+                    for query in law_keywords:
+                        result = search_law_tool(query, top_k=5)  # 일반 QA는 쿼리당 5개
+                        citations = result.get("citations", [])
+                        all_citations.extend(citations)
+
+                    # 법령 근거 포맷팅 (최대 10개 표시)
+                    if all_citations:
+                        formatted = ["**관련 법령 근거**:"]
+                        for cite in all_citations[:10]:
+                            ref = cite.get("full_reference", "")
+                            content = cite.get("content", "")
+                            if len(content) > 150:
+                                content = content[:150] + "..."
+                            formatted.append(f"- {ref}: {content}")
+                        legal_references = "\n".join(formatted)
+                        LOGGER.info(f"Found {len(all_citations)} legal references for general_info")
+
+                except Exception as e:
+                    LOGGER.warning(f"Law search failed in general_info: {e}")
+                    legal_references = ""
+
+            # 3. Gemini에게 법령 근거와 함께 전달
+            if legal_references:
+                enhanced_prompt = f"""{DEFAULT_SYSTEM_PROMPT}
+
+아래 법령 근거를 참고하여 정확하고 상세하게 답변해주세요:
+
+{legal_references}"""
+                response = await client.generate_content(
+                    system_prompt=enhanced_prompt,
+                    user_message=user_message
+                )
+            else:
+                # 법령 근거 없이 기본 응답
+                response = await client.generate_content(
+                    system_prompt=DEFAULT_SYSTEM_PROMPT,
+                    user_message=user_message
+                )
+
         except GeminiClientError:
             LOGGER.exception("Failed to generate general info response")
             response = "죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
