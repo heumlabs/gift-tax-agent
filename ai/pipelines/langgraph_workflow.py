@@ -827,7 +827,7 @@ async def _search_legal_db(user_message: str) -> str:
         return ""
 
     except Exception as e:
-        LOGGER.warning(f"[Legal DB] Search failed: {e}")
+        LOGGER.error(f"[Legal DB] Search failed: {e}", exc_info=True)
         return ""
 
 
@@ -867,7 +867,7 @@ async def _search_web(user_message: str, client: GeminiClient) -> str:
         return web_info
 
     except Exception as e:
-        LOGGER.warning(f"[Web Search] Failed: {e}")
+        LOGGER.error(f"[Web Search] Failed: {e}", exc_info=True)
         return ""
 
 
