@@ -120,7 +120,7 @@ class MessageService:
                         break  # 가장 최근 assistant 메시지만 사용
 
             # 1. 사용자 메시지 저장
-            user_message = message_repo.create(
+            message_repo.create(
                 session_id=session_id, role="user", content=content, metadata=None
             )
 
