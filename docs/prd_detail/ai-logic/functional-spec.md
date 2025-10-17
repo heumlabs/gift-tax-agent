@@ -57,9 +57,10 @@
 
 ### LLM-6.3 법령/예규 근거 링크 노출
 - **Linked PRD**: `docs/PRD.md:128`, `docs/PRD.md:150`, `docs/prd_detail/ai-logic/03-message-format.md:64`
+- **Linked Spec**: `docs/prd_detail/ai-logic/06-law-search-rag-spec.md` (RAG Tool 구현 상세)
 - **Tasks**
-  - [ ] `LLM-6.3.a` SearchLaw Tool 구현 및 HNSW 검색 최적화 (Owner: TBD)
-  - [ ] `LLM-6.3.b` Retrieval 결과를 citation 구조로 정규화 (Owner: TBD)
+  - [✅] `LLM-6.3.a` SearchLaw Tool 구현 및 하이브리드 검색 최적화 (완료: gemini-embedding-001 + 768D + 정규화, law_sources_v3)
+  - [✅] `LLM-6.3.b` Retrieval 결과를 citation 구조로 정규화 (완료: LawCitation, LawSearchResult TypedDict)
   - [ ] `LLM-6.3.c` Citation 미존재 시 경고 메시지 및 품질 로그 남기기 (Owner: TBD)
 
 ### LLM-6.4 세션 맥락 유지 및 재질문 응답
@@ -189,6 +190,7 @@
 ---
 
 ## Change Log
+- 2025-10-17: RAG Tool 구현 완료 - search_law_tool (하이브리드 검색), gemini-embedding-001 + 768D + 정규화, law_sources 테이블, LLM-6.3.a/b 완료
 - 2025-10-16: Phase 3 상세 기획 반영 - 04-clarifying-implementation-spec.md 작성, LLM-6.1/6.2/6.4 태스크 상세화
 - 2025-10-16: Issue #21 완료 - 증여세 계산기 스펙 문서 분리 (05-gift-tax-calculator-spec.md), 9개 변수 확정
 - 2025-10-16: Issue #22 완료 - LangGraph 기본 Workflow 구현, Intent 분류, Tool 노드 통합

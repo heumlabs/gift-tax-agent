@@ -136,6 +136,85 @@ class LawSource(SQLModel, table=True):
     )
 
 
+class LawSourceV2(SQLModel, table=True):
+    """법령 벡터 스토어 v2 - 계층적 구조 지원"""
+
+    __tablename__ = "law_sources_v2"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    chunk_hash: str = Field(
+        max_length=64,
+        unique=True,
+        nullable=False,
+        description="중복 방지를 위한 SHA-256 해시",
+    )
+
+    # 기본 정보
+    law_name: str = Field(nullable=False, description="법령 이름 (예: 상속세및증여세법)")
+    full_reference: str = Field(
+        nullable=False, description="전체 인용 경로 (예: 상속세및증여세법 제53조(증여재산 공제) 1항)"
+    )
+    content: str = Field(nullable=False, description="해당 계층의 원문 텍스트")
+
+    # 계층 정보 (v2 신규)
+    parent_id: Optional[int] = Field(
+        default=None,
+        foreign_key="law_sources_v2.id",
+        description="부모 조문 ID (self-reference)",
+    )
+    article_id: Optional[str] = Field(
+        default=None,
+        max_length=50,
+        description="조 단위 그룹 ID (예: '53', '53-2')",
+    )
+    level: Optional[str] = Field(
+        default=None,
+        max_length=20,
+        description="계층 레벨 (article/paragraph/item/subitem)",
+    )
+    hierarchy_path: Optional[str] = Field(
+        default=None,
+        description="계층 경로 (예: '제53조(증여재산 공제) > 2항')",
+    )
+
+    # 임베딩 (v2 개선)
+    full_text_for_embedding: Optional[str] = Field(
+        default=None,
+        description="임베딩용 전체 텍스트 (상위 계층 정보 포함)",
+    )
+    embedding: Optional[list] = Field(
+        default=None,
+        sa_column=Column(Vector(768), nullable=True),
+        description="full_text_for_embedding의 임베딩",
+    )
+
+    # 메타데이터
+    source_url: Optional[str] = Field(
+        default=None, max_length=2048, description="법제처 등 원문 링크"
+    )
+    source_file: Optional[str] = Field(
+        default=None, max_length=512, description="원본 JSON 파일 경로"
+    )
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        nullable=False,
+        sa_column_kwargs={"server_default": text("now()")},
+    )
+
+    __table_args__ = (
+        Index("idx_law_sources_v2_parent", "parent_id"),
+        Index("idx_law_sources_v2_article", "article_id"),
+        Index("idx_law_sources_v2_level", "level"),
+        Index("idx_law_sources_v2_law_ref", "law_name", "full_reference"),
+        Index(
+            "idx_law_sources_v2_embedding",
+            "embedding",
+            postgresql_using="hnsw",
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+        ),
+    )
+
+
 class KnowledgeSource(SQLModel, table=True):
     """법령 외 Q&A, 사례집 등 보조 지식을 저장"""
 

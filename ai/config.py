@@ -36,6 +36,13 @@ class GeminiSettings:
     model: str = "gemini-2.5-flash"
     request_timeout: float = 30.0
     base_url: str = "https://generativelanguage.googleapis.com"
+    embedding_model: str = "gemini-embedding-001"
+    embedding_dimension: int = 768
+    embedding_batch_size: int = 100
+    # Law search settings
+    law_search_table: str = "law_sources"
+    law_search_keyword_weight: float = 0.3
+    law_search_embedding_weight: float = 0.7
 
     @classmethod
     def from_env(cls) -> "GeminiSettings":
@@ -51,7 +58,39 @@ class GeminiSettings:
         except ValueError:
             timeout = cls.request_timeout
 
-        return cls(api_key=api_key, model=model, request_timeout=timeout)
+        # Embedding settings (optional overrides)
+        embedding_model = _read_env("GEMINI_EMBEDDING_MODEL", cls.embedding_model)
+        embedding_dim_raw = _read_env("GEMINI_EMBEDDING_DIMENSION", str(cls.embedding_dimension))
+        try:
+            embedding_dim = int(embedding_dim_raw)
+        except ValueError:
+            embedding_dim = cls.embedding_dimension
+
+        # Law search settings (optional overrides)
+        law_search_table = _read_env("LAW_SEARCH_TABLE", cls.law_search_table)
+        law_kw_weight_raw = _read_env("LAW_SEARCH_KEYWORD_WEIGHT", str(cls.law_search_keyword_weight))
+        law_emb_weight_raw = _read_env("LAW_SEARCH_EMBEDDING_WEIGHT", str(cls.law_search_embedding_weight))
+
+        try:
+            law_kw_weight = float(law_kw_weight_raw)
+        except ValueError:
+            law_kw_weight = cls.law_search_keyword_weight
+
+        try:
+            law_emb_weight = float(law_emb_weight_raw)
+        except ValueError:
+            law_emb_weight = cls.law_search_embedding_weight
+
+        return cls(
+            api_key=api_key,
+            model=model,
+            request_timeout=timeout,
+            embedding_model=embedding_model,
+            embedding_dimension=embedding_dim,
+            law_search_table=law_search_table,
+            law_search_keyword_weight=law_kw_weight,
+            law_search_embedding_weight=law_emb_weight,
+        )
 
     @property
     def endpoint(self) -> str:
@@ -60,3 +99,15 @@ class GeminiSettings:
             model_name = f"models/{model_name}"
         base = self.base_url.rstrip("/")
         return f"{base}/v1beta/{model_name}:generateContent"
+
+    @property
+    def embedding_endpoint(self) -> str:
+        """Endpoint for single embedding generation."""
+        base = self.base_url.rstrip("/")
+        return f"{base}/v1beta/models/{self.embedding_model}:embedContent"
+
+    @property
+    def embedding_batch_endpoint(self) -> str:
+        """Endpoint for batch embedding generation."""
+        base = self.base_url.rstrip("/")
+        return f"{base}/v1beta/models/{self.embedding_model}:batchEmbedContents"
