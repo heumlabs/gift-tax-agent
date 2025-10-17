@@ -26,7 +26,7 @@ from ai.config import GeminiSettings
 from ai.prompts import DEFAULT_SYSTEM_PROMPT, INTENT_CLASSIFICATION_PROMPT
 from ai.prompts.clarifying import SYNTHESIS_PROMPT
 from ai.schemas.workflow_state import WorkflowState
-from ai.utils.exit_detection import detect_exit_intent_keyword
+# exit_detection은 이제 LLM 기반으로 clarifying_node 내부에서 직접 처리
 from ai.utils.parameter_extraction import (
     check_missing_parameters,
     extract_parameters,
@@ -190,7 +190,7 @@ async def clarifying_node(state: WorkflowState) -> dict:
     Clarifying 노드: 파라미터 수집 및 질문 생성
 
     역할:
-    1. Exit Detection (키워드 기반 우선)
+    1. Intent Re-classification (LLM 기반) - 사용자 의도 변화 감지
     2. Parameter Extraction (Gemini API)
     3. Missing Parameter Check
     4. Clarifying Question Generation
@@ -203,44 +203,127 @@ async def clarifying_node(state: WorkflowState) -> dict:
             - collected_parameters: 병합된 파라미터
             - missing_parameters: 누락 목록
             - response: 질문 텍스트 (있는 경우) 또는 None (계산 진행)
-            - intent: 변경된 intent (이탈 시)
+            - intent: 변경된 intent (이탈/전환 시)
     """
     user_message = state.get("user_message", "")
-    collected = state.get("collected_parameters", {}).copy()  # 복사본 생성
+    current_intent = state.get("intent", "gift_tax")
+    # collected_parameters가 None이면 빈 딕셔너리로 초기화
+    collected = (state.get("collected_parameters") or {}).copy()  # 복사본 생성
 
-    # Step 1: Exit Detection (Clarifying 중일 때만, 키워드 기반)
-    # 첫 턴이 아닌 경우에만 Exit Detection 실행 (state에 intent가 이미 있는 경우)
-    if state.get("intent") in ["gift_tax", "inheritance_tax"]:
-        exit_signal = detect_exit_intent_keyword(user_message)
+    # Step 1: Intent Re-classification (LLM 기반)
+    # Clarifying 중에도 매 턴마다 사용자의 의도 변화를 감지
+    from ai.prompts.clarifying import CLARIFYING_INTENT_DETECTION_PROMPT
+    import json
 
-        if exit_signal == "exit":
-            LOGGER.info("User requested to exit calculation.")
-            return {
-                "response": "알겠습니다. 다른 궁금한 점이 있으시면 언제든 말씀해주세요.",
-                "collected_parameters": {},  # 초기화
-                "missing_parameters": [],
-                "intent": "out_of_scope"
-            }
+    settings = GeminiSettings.from_env()
+    client = GeminiClient(settings)
 
-        if exit_signal == "switch_to_inheritance":
-            LOGGER.info("User requested to switch to inheritance tax.")
-            return {
-                "collected_parameters": {},  # 초기화
-                "missing_parameters": [],
-                "intent": "inheritance_tax",
-                "response": "상속세 계산으로 변경하겠습니다. 필요한 정보를 여쭤볼게요."
-            }
+    response = None  # 초기화
+    try:
+        # 현재 intent를 한글로 변환
+        intent_kr = "증여세" if current_intent == "gift_tax" else "상속세" if current_intent == "inheritance_tax" else "세금"
 
-        if exit_signal == "switch_to_gift":
-            LOGGER.info("User requested to switch to gift tax.")
-            return {
-                "collected_parameters": {},  # 초기화
-                "missing_parameters": [],
-                "intent": "gift_tax",
-                "response": "증여세 계산으로 변경하겠습니다. 필요한 정보를 여쭤볼게요."
-            }
+        prompt = CLARIFYING_INTENT_DETECTION_PROMPT.format(
+            current_intent=intent_kr,
+            user_message=user_message
+        )
 
-    # Step 2: Parameter Extraction (이전 컨텍스트 포함)
+        response = await client.generate_content(
+            system_prompt="",
+            user_message=prompt
+        )
+
+        LOGGER.info(f"Raw LLM response for intent re-classification: {response}")
+
+        # JSON 파싱 (마크다운 코드 블록 제거)
+        response_cleaned = response.strip()
+        if response_cleaned.startswith("```json"):
+            response_cleaned = response_cleaned[7:]  # ```json 제거
+        if response_cleaned.startswith("```"):
+            response_cleaned = response_cleaned[3:]  # ``` 제거
+        if response_cleaned.endswith("```"):
+            response_cleaned = response_cleaned[:-3]  # ``` 제거
+        response_cleaned = response_cleaned.strip()
+
+        result = json.loads(response_cleaned)
+        detected_intent = result.get("intent", "continue")
+        reasoning = result.get("reasoning", "")
+
+        LOGGER.info(f"Intent re-classification: {detected_intent} (reasoning: {reasoning})")
+
+    except Exception as e:
+        LOGGER.error(f"Intent re-classification error: {e}. Response was: {response}. Defaulting to 'continue'")
+        detected_intent = "continue"
+
+    # Step 2: Intent에 따른 분기 처리
+    if detected_intent == "exit":
+        LOGGER.info("User requested to exit calculation.")
+        # LLM을 사용하여 자연스러운 종료 응답 생성
+        try:
+            exit_response = await client.generate_content(
+                system_prompt="당신은 세금 계산을 도와주는 AI입니다. 사용자가 계산을 중단하려고 합니다. 자연스럽고 친절하게 응답하세요.",
+                user_message=user_message
+            )
+        except Exception as e:
+            LOGGER.error(f"Failed to generate exit response: {e}")
+            exit_response = "알겠습니다. 다른 궁금한 점이 있으시면 언제든 말씀해주세요."
+
+        return {
+            "response": exit_response,
+            "collected_parameters": {},  # 초기화
+            "missing_parameters": [],
+            "intent": "out_of_scope"
+        }
+
+    if detected_intent == "switch_to_inheritance":
+        LOGGER.info("User requested to switch to inheritance tax.")
+        # LLM을 사용하여 자연스러운 모드 전환 응답 생성
+        try:
+            switch_response = await client.generate_content(
+                system_prompt="당신은 세금 계산을 도와주는 AI입니다. 사용자가 증여세에서 상속세 계산으로 전환하려고 합니다. 자연스럽게 모드 전환을 안내하세요.",
+                user_message=user_message
+            )
+        except Exception as e:
+            LOGGER.error(f"Failed to generate switch response: {e}")
+            switch_response = "상속세 계산으로 변경하겠습니다. 필요한 정보를 여쭤볼게요."
+
+        return {
+            "collected_parameters": {},  # 초기화
+            "missing_parameters": [],
+            "intent": "inheritance_tax",
+            "response": switch_response
+        }
+
+    if detected_intent == "switch_to_gift":
+        LOGGER.info("User requested to switch to gift tax.")
+        # LLM을 사용하여 자연스러운 모드 전환 응답 생성
+        try:
+            switch_response = await client.generate_content(
+                system_prompt="당신은 세금 계산을 도와주는 AI입니다. 사용자가 상속세에서 증여세 계산으로 전환하려고 합니다. 자연스럽게 모드 전환을 안내하세요.",
+                user_message=user_message
+            )
+        except Exception as e:
+            LOGGER.error(f"Failed to generate switch response: {e}")
+            switch_response = "증여세 계산으로 변경하겠습니다. 필요한 정보를 여쭤볼게요."
+
+        return {
+            "collected_parameters": {},  # 초기화
+            "missing_parameters": [],
+            "intent": "gift_tax",
+            "response": switch_response
+        }
+
+    if detected_intent == "general_info":
+        LOGGER.info("User asked a general question during clarifying.")
+        # 일반 질문으로 전환 - response_node에서 처리
+        return {
+            "intent": "general_info",
+            "response": None  # response_node에서 생성
+        }
+
+    # detected_intent == "continue": 정상 진행 (파라미터 계속 수집)
+
+    # Step 3: Parameter Extraction (이전 컨텍스트 포함)
     try:
         new_params = await extract_parameters(user_message, collected)
         LOGGER.info(f"Extracted parameters: {new_params}")
@@ -574,11 +657,13 @@ async def run_workflow(
     graph = create_workflow()
 
     # 초기 상태 (이전 파라미터 포함)
+    # 첫 턴(previous_collected_parameters가 None)일 때는 None 유지 → Intent 분류 실행
+    # 두 번째 턴 이후(빈 dict 또는 값 있는 dict)일 때는 그대로 전달 → Clarifying 모드
     initial_state: WorkflowState = {
         "session_id": session_id,
         "user_message": user_message,
         "messages": [],
-        "collected_parameters": previous_collected_parameters or {},  # 누적
+        "collected_parameters": previous_collected_parameters,  # None or dict
         "missing_parameters": [],
         "metadata": {},
     }
