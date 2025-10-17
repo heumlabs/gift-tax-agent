@@ -4,4 +4,3 @@ __pycache__/
 .history/
 node_modules/
 .python-version
-package-lock.json

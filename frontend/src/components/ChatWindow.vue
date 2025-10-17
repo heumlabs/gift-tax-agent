@@ -4,6 +4,7 @@ import { useChatStore } from '@/store';
 import ChatBubble from '@/components/ChatBubble.vue';
 import MessageInput from '@/components/MessageInput.vue';
 import LoadingIndicator from '@/components/common/LoadingIndicator.vue';
+import TypingIndicator from '@/components/TypingIndicator.vue';
 
 interface Props {
   sessionId: string;
@@ -90,30 +91,23 @@ onMounted(() => {
       </div>
 
       <!-- 메시지 목록 -->
-      <template v-else-if="chatStore.sortedMessages.length > 0 || chatStore.streamingMessage">
+      <template v-else-if="chatStore.sortedMessages.length > 0 || chatStore.streamingMessage || chatStore.isLoadingResponse">
         <ChatBubble
           v-for="message in chatStore.sortedMessages"
           :key="message.id"
           :message="message"
         />
 
-        <!-- 스트리밍 중인 메시지 -->
+        <!-- AI 응답 대기 중 (API 요청 → 응답 수신 전) -->
+        <TypingIndicator v-if="chatStore.isLoadingResponse && !chatStore.streamingMessage" />
+
+        <!-- 스트리밍 중인 메시지 (API 응답 수신 후 타이핑 애니메이션) -->
         <ChatBubble
-          v-if="chatStore.streamingMessage"
+          v-else-if="chatStore.streamingMessage"
           :key="chatStore.streamingMessage.id"
           :message="chatStore.streamingMessage"
           :is-streaming="true"
         />
-
-        <!-- AI 응답 대기 중 (스트리밍 시작 전) -->
-        <div v-else-if="chatStore.isLoadingResponse" class="flex justify-start">
-          <div class="flex-shrink-0 w-8 h-8 mr-3 rounded-full bg-accent flex items-center justify-center text-white font-bold text-sm">
-            AI
-          </div>
-          <div class="bg-neutral-card rounded-2xl rounded-bl-sm px-5 py-3">
-            <LoadingIndicator />
-          </div>
-        </div>
       </template>
 
       <!-- 빈 상태 -->
