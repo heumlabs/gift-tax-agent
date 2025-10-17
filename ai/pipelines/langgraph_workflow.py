@@ -248,11 +248,11 @@ async def clarifying_node(state: WorkflowState) -> dict:
         LOGGER.error(f"Parameter extraction error: {e}")
         new_params = {}
 
-    # Step 3: 파라미터 병합 (null이 아닌 Tier 1 변수만)
-    tier1_keys = ["gift_date", "donor_relationship", "gift_property_value"]
-    for key in tier1_keys:
-        if key in new_params and new_params[key] is not None:
-            collected[key] = new_params[key]
+    # Step 3: 파라미터 병합 (null이 아닌 모든 변수)
+    # 사용자가 자발적으로 제공한 Tier 2/3 정보도 반영
+    for key, value in new_params.items():
+        if value is not None:
+            collected[key] = value
 
     # Step 4: 필수 변수 체크 (Tier 1)
     missing = check_missing_parameters(collected)
