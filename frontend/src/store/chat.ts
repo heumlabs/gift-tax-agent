@@ -103,14 +103,16 @@ export const useChatStore = defineStore('chat', () => {
     messages.value.push(tempUserMessage);
 
     try {
-      // 스트리밍 시작
-      startStreaming();
-      isLoadingResponse.value = false; // 스트리밍 중에는 로딩 인디케이터 숨김
-
+      // API 응답 대기 (이 동안 TypingIndicator 표시됨)
       const response = await messageApi.sendMessageWithStreaming(
         sessionId,
         content,
         (chunk: string) => {
+          // 첫 번째 청크를 받을 때 스트리밍 시작 (API 응답 수신 후)
+          if (!isStreaming.value) {
+            startStreaming();
+            isLoadingResponse.value = false; // 타이핑 시작 시 로딩 상태 해제
+          }
           // 스트리밍 청크를 받을 때마다 업데이트
           updateStreamingMessage(chunk);
         }
