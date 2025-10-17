@@ -84,6 +84,9 @@ class MessageService:
         """
         사용자 메시지를 보내고 AI 응답을 받음
 
+        Phase 3에서 멀티턴 대화 지원을 위해 이전 메시지 조회 및
+        collected_parameters 누적 로직 추가
+
         Args:
             session_id: 세션 ID
             client_id_hash: 클라이언트 ID 해시
@@ -101,13 +104,32 @@ class MessageService:
 
             message_repo = MessageRepository(db)
 
+            # Phase 3 추가: 이전 메시지 조회 (최근 10개, 역순)
+            previous_messages, _ = message_repo.find_all_by_session(
+                session_id, limit=10, cursor=None
+            )
+
+            # Phase 3 추가: 마지막 assistant 메시지에서 collected_parameters 추출
+            # find_all_by_session은 최신순(desc)으로 반환하므로, 첫 번째부터 순회
+            previous_collected = None  # 첫 턴에서는 None → Intent 분류 실행
+            for msg in previous_messages:  # 최신순으로 순회
+                if msg.role == "assistant" and msg.msg_metadata:
+                    # collected_parameters가 존재하면 추출 (빈 딕셔너리도 포함)
+                    if "collected_parameters" in msg.msg_metadata:
+                        previous_collected = msg.msg_metadata.get("collected_parameters", {})
+                        break  # 가장 최근 assistant 메시지만 사용
+
             # 1. 사용자 메시지 저장
-            user_message = message_repo.create(
+            message_repo.create(
                 session_id=session_id, role="user", content=content, metadata=None
             )
 
-            # 2. AI 응답 생성
-            ai_response = generate_assistant_message(content=content)
+            # 2. AI 응답 생성 (Phase 3: session_id, previous_collected_parameters 추가)
+            ai_response = generate_assistant_message(
+                content=content,
+                session_id=session_id,
+                previous_collected_parameters=previous_collected
+            )
 
             # 3. AI 응답 메시지 저장
             assistant_message_db = message_repo.create(

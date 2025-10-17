@@ -25,6 +25,7 @@ def calculate_gift_tax_simple(
     marriage_deduction_amount: int = 0,
     childbirth_deduction_amount: int = 0,
     secured_debt: int = 0,
+    current_date: date | None = None,
 ) -> GiftTaxSimpleOutput:
     """
     국세청 증여세 간편계산 로직.
@@ -40,9 +41,10 @@ def calculate_gift_tax_simple(
         marriage_deduction_amount: 혼인공제액
         childbirth_deduction_amount: 출산공제액
         secured_debt: 담보채무액
+        current_date: 현재 날짜 (기한 후 신고 가산세 계산용, 기본값: 오늘)
 
     Returns:
-        GiftTaxSimpleOutput: 계산 결과 (6단계 + warnings)
+        GiftTaxSimpleOutput: 계산 결과 (6단계 + 가산세 + warnings)
 
     Note:
         LangGraph에서 호출 시:
@@ -93,6 +95,12 @@ def calculate_gift_tax_simple(
     )
 
     if taxable_base <= 0:
+        # 주의사항 (세금 0원이어도 신고기한 안내)
+        warnings = generate_warnings(
+            gift_date=gift_date,
+            is_generation_skipping=is_generation_skipping,
+            current_date=current_date or date.today(),
+        )
         return {
             "steps": steps,
             "gift_value": gift_value,
@@ -101,7 +109,7 @@ def calculate_gift_tax_simple(
             "calculated_tax": 0,
             "surtax": 0,
             "final_tax": 0,
-            "warnings": ["과세표준이 0 이하이므로 납부할 증여세가 없습니다."],
+            "warnings": warnings,
         }
 
     # ④ 산출세액
@@ -148,6 +156,7 @@ def calculate_gift_tax_simple(
     warnings = generate_warnings(
         gift_date=gift_date,
         is_generation_skipping=is_generation_skipping,
+        current_date=current_date or date.today(),
     )
 
     return {
@@ -218,13 +227,14 @@ def get_tax_rate_detail(taxable_base: int) -> str:
     return ""
 
 
-def generate_warnings(gift_date: date, is_generation_skipping: bool) -> list[str]:
+def generate_warnings(gift_date: date, is_generation_skipping: bool, current_date: date) -> list[str]:
     """
     주의사항 생성.
 
     Args:
         gift_date: 증여일자
         is_generation_skipping: 세대생략 증여 여부
+        current_date: 현재 날짜 (기한 경과 판단용)
 
     Returns:
         list[str]: 주의사항 목록
@@ -233,10 +243,22 @@ def generate_warnings(gift_date: date, is_generation_skipping: bool) -> list[str
 
     # 신고 기한
     filing_deadline = gift_date + timedelta(days=90)
-    warnings.append(f"증여일로부터 3개월 이내({filing_deadline.strftime('%Y년 %m월 %d일')}까지) 신고해야 합니다.")
 
-    # 기한 후 신고 가산세
-    warnings.append("기한 후 신고 시 가산세 20%가 부과됩니다.")
+    # 기한 경과 여부 확인
+    if current_date > filing_deadline:
+        # 기한 경과 - 경고 메시지
+        overdue_days = (current_date - filing_deadline).days
+        warnings.append(
+            f"⚠️ 신고기한({filing_deadline.strftime('%Y년 %m월 %d일')})이 {overdue_days}일 경과했습니다. "
+            f"즉시 신고하셔야 하며, 기한 후 신고 가산세(무신고 20%, 납부지연 등)가 부과될 수 있습니다."
+        )
+    else:
+        # 기한 내 - 일반 안내
+        remaining_days = (filing_deadline - current_date).days
+        warnings.append(
+            f"증여일로부터 3개월 이내({filing_deadline.strftime('%Y년 %m월 %d일')}까지, 남은 기간: {remaining_days}일) 신고해야 합니다."
+        )
+        warnings.append("기한 후 신고 시 가산세가 부과됩니다.")
 
     # 세대생략 할증 안내
     if is_generation_skipping:
